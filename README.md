@@ -59,6 +59,21 @@ If PyTorch is already installed for your platform, the editable install is usual
 For CUDA machines, install the PyTorch wheel matching your driver/CUDA version first, then run
 the editable install.
 
+## Supported Machines
+
+`cc-lite` is meant to be portable across normal development machines:
+
+- macOS MacBook: uses Apple MPS when PyTorch exposes it, otherwise CPU.
+- Linux PC: works on CPU; uses CUDA automatically when a compatible NVIDIA GPU and CUDA PyTorch
+  build are installed.
+- Windows PC: works on CPU or CUDA through PyTorch. The shell scripts in `scripts/` are Bash
+  scripts, so run them from Git Bash or WSL, or use the explicit `python -m ...` commands below
+  from PowerShell.
+- Consumer NVIDIA GPU: use `configs/gpu_small.yaml` as the first non-debug profile.
+
+The `research_debug` config is the safest first run on any machine. It is intentionally tiny and
+only proves that rules, MCTS, training, checkpointing, and evaluation are wired correctly.
+
 ## Smoke Training On MacBook
 
 Runs one very short self-play game, trains one checkpoint, and evaluates against random:
@@ -86,6 +101,28 @@ python -m eval.evaluate \
 Expected runtime: seconds to a couple of minutes depending on CPU/MPS behavior. Memory use should
 stay well under normal laptop limits because the debug run uses very few plies and simulations.
 
+## Smoke Training On Windows Or Linux PC
+
+From PowerShell on Windows, use the module commands directly:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m train.self_play `
+  --config configs/research_debug.yaml `
+  --output runs/research_debug/selfplay.jsonl `
+  --train `
+  --checkpoint-out runs/research_debug/checkpoints/selfplay.pt
+
+python -m eval.evaluate `
+  --config configs/research_debug.yaml `
+  --checkpoint runs/research_debug/checkpoints/selfplay.pt `
+  --opponent random
+```
+
+From Linux, WSL, or Git Bash, either run `./scripts/smoke_macbook.sh` or the Bash commands shown
+in the MacBook smoke section. The script name says MacBook because it uses the tiny debug profile,
+not because it is macOS-only.
+
 ## MacBook Tiny Run
 
 ```bash
@@ -95,7 +132,7 @@ stay well under normal laptop limits because the debug run uses very few plies a
 This uses the tiny 4-block model, 50 MCTS simulations, small batches, and `fp32`. Expect this to
 be slow compared with real engines; it is meant for reproducibility and pipeline validation.
 
-## GPU Small Run
+## NVIDIA GPU Small Run
 
 ```bash
 ./scripts/train_gpu_small.sh
@@ -104,6 +141,22 @@ be slow compared with real engines; it is meant for reproducibility and pipeline
 This uses the small model, 200 simulations, batch size 64, and CUDA mixed precision when CUDA is
 available. On an RTX-class GPU, memory should remain modest because the network and replay set are
 small. Increase games, replay size, and simulations only after the debug run is stable.
+
+Windows users can run the same workflow from Git Bash/WSL, or translate it to PowerShell:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m train.self_play `
+  --config configs/gpu_small.yaml `
+  --output runs/gpu_small/selfplay.jsonl `
+  --train `
+  --checkpoint-out runs/gpu_small/checkpoints/latest.pt
+
+python -m eval.evaluate `
+  --config configs/gpu_small.yaml `
+  --checkpoint runs/gpu_small/checkpoints/latest.pt `
+  --opponent material
+```
 
 ## Supervised Bootstrap
 
@@ -211,4 +264,3 @@ training pass.
 4. Add repetition/check-state history planes and stronger draw adjudication.
 5. Run ablations over channels, blocks, simulations, replay size, and data source.
 6. Evaluate against low-depth Pikafish when an engine binary is configured.
-
