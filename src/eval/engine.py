@@ -6,7 +6,9 @@ import threading
 import time
 from dataclasses import dataclass
 
-from xiangqi.board import Move
+from xiangqi.board import BLACK, RED, Move
+
+ENGINE_PIECE_TRANSLATION = str.maketrans({"H": "N", "h": "n", "E": "B", "e": "b"})
 
 
 @dataclass(frozen=True)
@@ -46,7 +48,13 @@ def parse_bestmove_output(output: str) -> EngineResult:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
-    return EngineResult(move=Move.from_uci(best), score_cp=score_cp, raw_output=output)
+    return EngineResult(move=Move.from_uci(engine_move_to_cc(best)), score_cp=score_cp, raw_output=output)
+
+
+def engine_move_to_cc(text: str) -> str:
+    if len(text) != 4:
+        raise ValueError(f"Expected four-character engine move, got {text!r}")
+    return text[0] + str(9 - int(text[1])) + text[2] + str(9 - int(text[3]))
 
 
 class UcciEngine:
@@ -57,7 +65,7 @@ class UcciEngine:
     self-play orchestration.
     """
 
-    def __init__(self, command: str, timeout: float = 10.0, init_command: str = "ucci"):
+    def __init__(self, command: str, timeout: float = 10.0, init_command: str = "uci"):
         self.proc = subprocess.Popen(
             command,
             shell=True,
@@ -102,8 +110,7 @@ class UcciEngine:
         raise TimeoutError(f"Engine did not answer with {prefixes}. Last lines: {lines[-8:]}")
 
     def best_move(self, fen: str, depth: int) -> EngineResult:
-        placement, turn = fen.rsplit(" ", 1)
-        engine_fen = placement + (" w" if turn == "r" else " b")
+        engine_fen = to_engine_fen(fen)
         self.send(f"position fen {engine_fen}")
         self.send(f"go depth {depth}")
         return parse_bestmove_output(self.read_until(("bestmove",)))
@@ -116,3 +123,13 @@ class UcciEngine:
         finally:
             self.proc.terminate()
 
+
+def to_engine_fen(fen: str) -> str:
+    """Convert cc-lite FEN to Pikafish/Fairy-Stockfish-style Xiangqi FEN."""
+
+    placement, turn = fen.rsplit(" ", 1)
+    translated = placement.translate(ENGINE_PIECE_TRANSLATION)
+    engine_turn = "w" if turn == "r" or turn == RED else "b"
+    if turn == BLACK:
+        engine_turn = "b"
+    return f"{translated} {engine_turn}"

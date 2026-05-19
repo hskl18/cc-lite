@@ -25,7 +25,7 @@ Status: implemented.
 - Compact policy-value network.
 - Model-guided MCTS.
 - Random and material-count evaluation.
-- Optional UCCI engine labels for distillation.
+- Optional UCI/UCCI engine labels for distillation.
 - CI-backed test suite.
 
 Exit criterion:
@@ -36,7 +36,7 @@ Exit criterion:
 
 Status: started.
 
-- Add optional UCCI engine benchmark command.
+- Add optional UCI/UCCI engine benchmark command.
 - Evaluate checkpoints against low-depth Pikafish instead of only random/material baselines.
 - Save match metadata: engine command, depth, model checkpoint, config, seed, game count, result.
 - Keep engine binaries and generated labels outside git.
@@ -99,4 +99,3 @@ Status: planned.
 Exit criterion:
 
 - Improvements are backed by ablation tables and engine-match results, not subjective gameplay.
-

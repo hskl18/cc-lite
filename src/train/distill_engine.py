@@ -11,16 +11,17 @@ from xiangqi.encoding import MoveCodec
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Cache optional Pikafish/UCCI labels for distillation.")
+    parser = argparse.ArgumentParser(description="Cache optional Pikafish UCI/UCCI labels for distillation.")
     parser.add_argument("--engine", required=True, help="Engine command, e.g. './pikafish'")
     parser.add_argument("--positions", required=True, help="JSONL with {'fen': ...} rows")
     parser.add_argument("--output", default="runs/distill_labels.jsonl")
     parser.add_argument("--depth", type=int, default=4)
     parser.add_argument("--timeout", type=float, default=10.0)
+    parser.add_argument("--init-command", choices=["uci", "ucci"], default="uci")
     args = parser.parse_args()
 
     rows = [json.loads(line) for line in Path(args.positions).read_text(encoding="utf-8").splitlines() if line.strip()]
-    engine = UcciEngine(args.engine, timeout=args.timeout)
+    engine = UcciEngine(args.engine, timeout=args.timeout, init_command=args.init_command)
     samples: list[ReplaySample] = []
     try:
         for row in rows:

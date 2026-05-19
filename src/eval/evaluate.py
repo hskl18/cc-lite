@@ -40,6 +40,7 @@ def evaluate_checkpoint(
     engine_command: str | None = None,
     engine_depth: int = 4,
     engine_timeout: float = 10.0,
+    engine_init_command: str = "uci",
 ) -> dict[str, float]:
     device = choose_device(config.get("device", "auto"))
     model, _ = load_checkpoint(checkpoint, map_location=device)
@@ -51,7 +52,7 @@ def evaluate_checkpoint(
     if opponent == "engine":
         if not engine_command:
             raise ValueError("--engine-command is required when --opponent engine")
-        engine = UcciEngine(engine_command, timeout=engine_timeout)
+        engine = UcciEngine(engine_command, timeout=engine_timeout, init_command=engine_init_command)
     try:
         for game in range(games):
             model_color = RED if game % 2 == 0 else BLACK
@@ -100,9 +101,10 @@ def main() -> None:
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--opponent", choices=["random", "material", "engine"], default="random")
-    parser.add_argument("--engine-command", help="UCCI engine command, e.g. './pikafish'")
+    parser.add_argument("--engine-command", help="UCI/UCCI engine command, e.g. './pikafish'")
     parser.add_argument("--engine-depth", type=int, default=4)
     parser.add_argument("--engine-timeout", type=float, default=10.0)
+    parser.add_argument("--engine-init-command", choices=["uci", "ucci"], default="uci")
     parser.add_argument("--games", type=int)
     parser.add_argument("--simulations", type=int)
     parser.add_argument("--max-plies", type=int)
@@ -120,6 +122,7 @@ def main() -> None:
         engine_command=args.engine_command,
         engine_depth=args.engine_depth,
         engine_timeout=args.engine_timeout,
+        engine_init_command=args.engine_init_command,
     )
     print(json.dumps(metrics, indent=2, sort_keys=True))
 
