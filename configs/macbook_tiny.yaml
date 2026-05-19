@@ -1,0 +1,21 @@
+seed: 42
+device: auto
+model:
+  preset: tiny
+  channels: 64
+  blocks: 4
+self_play:
+  games: 8
+  simulations: 50
+  max_plies: 120
+  temperature: 1.0
+training:
+  batch_size: 16
+  epochs: 2
+  lr: 0.001
+  precision: fp32
+eval:
+  games: 8
+  simulations: 50
+  max_plies: 160
+
