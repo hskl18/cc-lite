@@ -7,6 +7,19 @@ This is not a DeepMind-scale reproduction and it does not claim engine strength.
 milestone is a correct-enough Xiangqi rules engine, a compact PyTorch policy-value model,
 model-guided MCTS, self-play data generation, checkpoint training, and baseline evaluation.
 
+## Project Status
+
+`cc-lite` is a research baseline, not a current industry-strength Xiangqi engine. For competitive
+analysis strength, use established engines such as Pikafish:
+
+- Pikafish: <https://github.com/official-pikafish/Pikafish>
+- Px0: <https://github.com/official-pikafish/px0>
+- Fairy-Stockfish: <https://fairy-stockfish.github.io/>
+
+The intended path is practical: supervised data or Pikafish distillation first, then AlphaZero-lite
+self-play. The roadmap toward a stronger benchmark-oriented system is documented in
+[`docs/industry-roadmap.md`](docs/industry-roadmap.md).
+
 ## Architecture
 
 - `src/xiangqi/`: board representation, legal move generation, FEN parsing, board encoding.
@@ -204,6 +217,31 @@ Evaluate against random or material-count baselines:
 ./scripts/evaluate_checkpoint.sh configs/macbook_tiny.yaml runs/macbook_tiny/checkpoints/latest.pt random
 ./scripts/evaluate_checkpoint.sh configs/macbook_tiny.yaml runs/macbook_tiny/checkpoints/latest.pt material
 ```
+
+Evaluate against a low-depth UCCI engine such as Pikafish:
+
+```bash
+./scripts/evaluate_engine.sh \
+  configs/macbook_tiny.yaml \
+  runs/macbook_tiny/checkpoints/latest.pt \
+  ./pikafish \
+  4
+```
+
+Equivalent explicit command:
+
+```bash
+export PYTHONPATH=src
+python -m eval.evaluate \
+  --config configs/macbook_tiny.yaml \
+  --checkpoint runs/macbook_tiny/checkpoints/latest.pt \
+  --opponent engine \
+  --engine-command ./pikafish \
+  --engine-depth 4
+```
+
+Engine binaries and generated engine-label datasets should stay outside git. The `.gitignore`
+covers `runs/`, checkpoint files, and common ML artifacts.
 
 Evaluate a new checkpoint against an older one:
 
