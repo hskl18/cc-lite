@@ -156,7 +156,7 @@ def main() -> None:
         checkpoint_path=args.checkpoint,
         config_path=args.config,
         seed=int(config.get("seed", 1)),
-        argv=sys.argv,
+        argv=["python", "-m", "eval.evaluate", *sys.argv[1:]],
         device=str(result["device"]),
     )
     print(json.dumps(result["summary"], indent=2, sort_keys=True))

@@ -203,5 +203,5 @@ def test_evaluate_cli_writes_bundle_with_exact_argv(tmp_path, monkeypatch) -> No
     evaluate_module.main()
 
     manifest = json.loads((run_dir / "manifest.json").read_text())
-    assert manifest["argv"] == argv
+    assert manifest["argv"] == ["python", "-m", "eval.evaluate", *argv[1:]]
     assert validate_evidence_bundle(run_dir)["valid"] is True
