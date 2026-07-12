@@ -25,6 +25,10 @@ jobs:
         run: ruff check .
       - name: Run tests
         run: pytest
+      - name: Validate committed evidence
+        run: |
+          python -m eval.evidence validate --run-dir evidence/debug-v1/random
+          python -m eval.evidence validate --run-dir evidence/debug-v1/material
       - name: Build and inspect package
         if: matrix.python-version == '3.12'
         run: python scripts/release_check.py

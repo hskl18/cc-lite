@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "eval.evaluate",
+    "--config",
+    "configs/research_debug.yaml",
+    "--checkpoint",
+    "runs/evidence-debug-v1/checkpoints/selfplay.pt",
+    "--opponent",
+    "material",
+    "--games",
+    "2",
+    "--simulations",
+    "4",
+    "--max-plies",
+    "20",
+    "--output-dir",
+    "evidence/debug-v1/material"
+  ],
+  "artifacts": {
+    "games.jsonl": "0770b87c506f688f93abf54b31192d1da4c37d15f7be9ea15cfd5753936c4109",
+    "summary.json": "825eefdb2519ae214a9dfd9963cba22f75ca22ea96fdfb976903c54308596604"
+  },
+  "checkpoint": {
+    "path": "runs/evidence-debug-v1/checkpoints/selfplay.pt",
+    "sha256": "85ec75669fe601f491db8541c571b8f4fb82a90427a60219f6dfcb7448821805"
+  },
+  "config": {
+    "path": "configs/research_debug.yaml",
+    "sha256": "5bbfcac1f2dec1c8c5f40e427dcca1eb5694d2a83e50345c1dea47ce7fb4472c"
+  },
+  "environment": {
+    "device": "mps",
+    "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "python": "3.14.3",
+    "pytorch": "2.13.0"
+  },
+  "schema_version": 1,
+  "seed": 7,
+  "source": {
+    "dirty": false,
+    "git_commit": "a545c1f8c2303dede5babb349a3bf4f99dd9df93"
+  }
+}
