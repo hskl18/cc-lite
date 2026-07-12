@@ -80,15 +80,15 @@ def _git_source() -> dict[str, Any]:
             text=True,
         ).stdout.strip()
         status = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=no"],
+            ["git", "diff", "--quiet", "HEAD", "--", ".", ":(exclude)evidence/debug-v1"],
             cwd=ROOT,
-            check=True,
             capture_output=True,
-            text=True,
-        ).stdout
+        )
     except (OSError, subprocess.CalledProcessError):
         return {"git_commit": "unknown", "dirty": True}
-    return {"git_commit": commit, "dirty": bool(status.strip())}
+    if status.returncode not in {0, 1}:
+        return {"git_commit": commit, "dirty": True}
+    return {"git_commit": commit, "dirty": status.returncode == 1}
 
 
 def write_evidence_bundle(
