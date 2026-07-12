@@ -6,7 +6,7 @@
     "--config",
     "configs/research_debug.yaml",
     "--checkpoint",
-    "runs/evidence-debug-v1/checkpoints/selfplay.pt",
+    "evidence/debug-v1/checkpoint/selfplay.pt",
     "--opponent",
     "random",
     "--games",
@@ -19,12 +19,12 @@
     "evidence/debug-v1/random"
   ],
   "artifacts": {
-    "games.jsonl": "30ce38dcbdb03a796819dad380d5cf5aeaf06e66d3fda7803e8a3eceae1f1e60",
-    "summary.json": "12749d808284f6221407e58bde53450ca576f5101917f21cdea0f0135d079bdc"
+    "games.jsonl": "ef7f7a685ab3157ae7f792e328f3042de2080e663e47770408907a334520f74e",
+    "summary.json": "e9fe800c66904b1bacc991f5c48f9ee875cd6439c1c08fe4d4a0072c63c7be03"
   },
   "checkpoint": {
-    "path": "runs/evidence-debug-v1/checkpoints/selfplay.pt",
-    "sha256": "85ec75669fe601f491db8541c571b8f4fb82a90427a60219f6dfcb7448821805"
+    "path": "evidence/debug-v1/checkpoint/selfplay.pt",
+    "sha256": "052688cb06d2bfb601cb18d1bb17c7b21df53c2269345333a1740a457422138b"
   },
   "config": {
     "path": "configs/research_debug.yaml",
@@ -40,6 +40,6 @@
   "seed": 7,
   "source": {
     "dirty": false,
-    "git_commit": "a545c1f8c2303dede5babb349a3bf4f99dd9df93"
+    "git_commit": "70d89ac7ab863d2feb579a6d4fdacf298d9fa2df"
   }
 }
