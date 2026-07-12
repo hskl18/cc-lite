@@ -138,6 +138,35 @@ def test_validator_rejects_terminal_score_on_max_plies_record(tmp_path) -> None:
     assert "game 1: max_plies must not have terminal_score" in result["errors"]
 
 
+def test_validator_rejects_missing_checkpoint_provenance(tmp_path) -> None:
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    config = tmp_path / "config.yaml"
+    config.write_bytes(b"seed: 1\n")
+    run_dir = tmp_path / "run"
+    write_evidence_bundle(
+        run_dir,
+        records=[
+            {
+                "terminal_reason": "max_plies",
+                "terminal_score": None,
+                "material_adjudication": 0.0,
+            }
+        ],
+        checkpoint_path=checkpoint,
+        config_path=config,
+        seed=1,
+        argv=["python", "-m", "eval.evaluate"],
+        device="cpu",
+    )
+    checkpoint.unlink()
+
+    result = validate_evidence_bundle(run_dir)
+
+    assert result["valid"] is False
+    assert "missing checkpoint provenance" in result["errors"]
+
+
 def test_evaluation_records_max_plies_without_counting_terminal_results(monkeypatch) -> None:
     class FakeSearch:
         def __init__(self, evaluator, config) -> None:

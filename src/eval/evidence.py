@@ -175,7 +175,11 @@ def validate_evidence_bundle(run_dir: str | Path) -> dict[str, Any]:
     for label in ("checkpoint", "config"):
         provenance = manifest.get(label, {})
         path = Path(provenance.get("path", ""))
-        if path.is_file() and sha256_file(path) != provenance.get("sha256"):
+        if not path.is_absolute():
+            path = ROOT / path
+        if not path.is_file():
+            errors.append(f"missing {label} provenance")
+        elif sha256_file(path) != provenance.get("sha256"):
             errors.append(f"{label} hash mismatch")
     return {"valid": not errors, "errors": errors}
 

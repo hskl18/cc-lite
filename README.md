@@ -28,7 +28,7 @@ Its capped games were also material-adjudicated and therefore were not terminal 
 
 The committed [`evidence/debug-v1`](evidence/debug-v1) bundle is a pipeline smoke artifact only.
 It records every move, seed, color, start and final FEN, termination reason, config and checkpoint hashes, exact command arguments, source commit, environment, and raw-derived summary.
-The generated checkpoint is intentionally excluded from git, so its hash binds both match bundles to one run but does not make that checkpoint independently downloadable.
+The 6.8 MB debug checkpoint is versioned with the bundle so a fresh clone can verify the exact bytes used by both matches.
 Terminal W/D/L is kept separate from games truncated at `max_plies`.
 Material state at a cutoff is diagnostic metadata and never becomes a terminal result or a self-play win label.
 
@@ -331,7 +331,6 @@ training pass.
 - Current evaluation is intentionally basic: random, material-count, low-depth engine if added,
   and checkpoint-vs-checkpoint matches.
 - The committed debug evidence has two games per opponent and supports no strength conclusion.
-- The debug checkpoint is not committed, so third parties can reproduce the protocol but not verify that exact checkpoint byte-for-byte.
 - Throughput values are environment-specific diagnostics and are not gated or presented as stable benchmarks.
 
 ## Next Research Steps

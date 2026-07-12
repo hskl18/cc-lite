@@ -12,10 +12,13 @@ python -m train.self_play \
   --train \
   --checkpoint-out runs/evidence-debug-v1/checkpoints/selfplay.pt
 
+mkdir -p evidence/debug-v1/checkpoint
+cp runs/evidence-debug-v1/checkpoints/selfplay.pt evidence/debug-v1/checkpoint/selfplay.pt
+
 for opponent in random material; do
   python -m eval.evaluate \
     --config configs/research_debug.yaml \
-    --checkpoint runs/evidence-debug-v1/checkpoints/selfplay.pt \
+    --checkpoint evidence/debug-v1/checkpoint/selfplay.pt \
     --opponent "$opponent" \
     --games 2 \
     --simulations 4 \
