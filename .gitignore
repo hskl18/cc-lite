@@ -18,6 +18,7 @@ data/cache/
 data/processed/
 data/external/
 *.pt
+!evidence/debug-v1/checkpoint/selfplay.pt
 *.pth
 *.ckpt
 *.safetensors

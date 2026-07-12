@@ -7,14 +7,28 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Install package
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
       - name: Run tests
         run: pytest
+      - name: Validate committed evidence
+        run: |
+          python -m eval.evidence validate --run-dir evidence/debug-v1/random
+          python -m eval.evidence validate --run-dir evidence/debug-v1/material
+      - name: Build and inspect package
+        if: matrix.python-version == '3.12'
+        run: python scripts/release_check.py

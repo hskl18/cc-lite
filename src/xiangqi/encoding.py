@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from xiangqi.board import BLACK, BOARD_SIZE, Move, RED, Board, piece_color, piece_kind
+from xiangqi.board import BLACK, BOARD_SIZE, RED, Board, Move, piece_color, piece_kind
 
 PIECE_PLANES = {
     (RED, "K"): 0,

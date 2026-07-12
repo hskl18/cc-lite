@@ -8,7 +8,7 @@ from typing import Protocol
 import numpy as np
 import torch
 
-from xiangqi.board import BLACK, RED, Board, Move, opposite
+from xiangqi.board import BLACK, RED, Board, Move
 from xiangqi.encoding import MoveCodec, encode_board
 
 

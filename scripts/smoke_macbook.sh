@@ -13,5 +13,5 @@ python -m train.self_play \
 python -m eval.evaluate \
   --config configs/research_debug.yaml \
   --checkpoint runs/research_debug/checkpoints/selfplay.pt \
-  --opponent random
-
+  --opponent random \
+  --output-dir runs/research_debug/evaluation-random

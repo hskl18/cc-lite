@@ -11,6 +11,17 @@ from train.config import choose_device, load_config, set_seed
 from xiangqi.board import BLACK, RED, START_FEN, Board
 
 
+def _terminal_score(board: Board, a_color: str) -> float | None:
+    if board.king_square(a_color) is None:
+        return -1.0
+    opponent = BLACK if a_color == RED else RED
+    if board.king_square(opponent) is None:
+        return 1.0
+    if not board.legal_moves():
+        return -1.0 if board.turn == a_color else 1.0
+    return None
+
+
 def play_match(
     checkpoint_a: str,
     checkpoint_b: str,
@@ -19,13 +30,14 @@ def play_match(
     games: int,
     simulations: int,
     max_plies: int,
-) -> dict[str, float]:
+) -> dict[str, float | None]:
     device = choose_device(config.get("device", "auto"))
     model_a, _ = load_checkpoint(checkpoint_a, map_location=device)
     model_b, _ = load_checkpoint(checkpoint_b, map_location=device)
     eval_a = TorchEvaluator(model_a, str(device))
     eval_b = TorchEvaluator(model_b, str(device))
     scores: list[float] = []
+    truncated_games = 0
     for game in range(games):
         a_color = RED if game % 2 == 0 else BLACK
         board = Board.from_fen(START_FEN)
@@ -38,18 +50,16 @@ def play_match(
             ply += 1
             if board.king_square(RED) is None or board.king_square(BLACK) is None:
                 break
-        if board.king_square(a_color) is None:
-            scores.append(-1.0)
-        elif board.king_square(BLACK if a_color == RED else RED) is None:
-            scores.append(1.0)
-        elif not board.legal_moves():
-            scores.append(-1.0 if board.turn == a_color else 1.0)
+        score = _terminal_score(board, a_color)
+        if score is None:
+            truncated_games += 1
         else:
-            material = board.material_score(a_color)
-            scores.append(0.0 if abs(material) < 20 else float(np.sign(material)))
+            scores.append(score)
     return {
         "games": games,
-        "a_score_mean": float(np.mean(scores)),
+        "terminal_games": len(scores),
+        "truncated_games": truncated_games,
+        "a_score_mean": float(np.mean(scores)) if scores else None,
         "a_wins": float(sum(1 for s in scores if s > 0)),
         "draws": float(sum(1 for s in scores if s == 0)),
         "a_losses": float(sum(1 for s in scores if s < 0)),
@@ -81,4 +91,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

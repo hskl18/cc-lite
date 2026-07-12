@@ -1,4 +1,10 @@
-from eval.engine import engine_move_to_cc, parse_bestmove_output, score_to_value, to_engine_fen
+from eval.engine import (
+    command_argv,
+    engine_move_to_cc,
+    parse_bestmove_output,
+    score_to_value,
+    to_engine_fen,
+)
 
 
 def test_parse_bestmove_output_with_cp_score():
@@ -21,3 +27,12 @@ def test_engine_move_to_cc_flips_ranks():
 def test_to_engine_fen_converts_piece_letters_and_side_marker():
     fen = "rheakaehr/9/9/9/9/9/9/9/9/RHEAKAEHR r"
     assert to_engine_fen(fen) == "rnbakabnr/9/9/9/9/9/9/9/9/RNBAKABNR w"
+
+
+def test_engine_command_is_parsed_as_argv_without_a_shell():
+    assert command_argv('python "fake engine.py" --mode ucci') == [
+        "python",
+        "fake engine.py",
+        "--mode",
+        "ucci",
+    ]

@@ -13,5 +13,5 @@ python -m train.self_play \
 python -m eval.evaluate \
   --config configs/gpu_small.yaml \
   --checkpoint runs/gpu_small/checkpoints/latest.pt \
-  --opponent material
-
+  --opponent material \
+  --output-dir runs/gpu_small/evaluation-material
