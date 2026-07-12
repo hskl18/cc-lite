@@ -1,4 +1,4 @@
-from model.network import PolicyValueNet, ModelConfig
+from model.network import ModelConfig, PolicyValueNet
 
 __all__ = ["ModelConfig", "PolicyValueNet"]
 

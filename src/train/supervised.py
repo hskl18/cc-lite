@@ -4,12 +4,12 @@ import argparse
 import json
 from pathlib import Path
 
-from data.replay import ReplaySample, read_jsonl
+from data.replay import ReplaySample
 from model.checkpoint import save_checkpoint
 from train.config import choose_device, load_config, set_seed
 from train.loop import train_samples
 from train.self_play import build_model
-from xiangqi.board import Board, Move
+from xiangqi.board import Move
 from xiangqi.encoding import MoveCodec
 
 

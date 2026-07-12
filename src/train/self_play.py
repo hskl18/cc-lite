@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -27,10 +26,7 @@ def _game_outcome(board: Board, max_plies_reached: bool) -> dict[str, float]:
         loser = board.turn
         return {loser: -1.0, (BLACK if loser == RED else RED): 1.0}
     if max_plies_reached:
-        score = board.material_score(RED)
-        if abs(score) < 20:
-            return {RED: 0.0, BLACK: 0.0}
-        return {RED: float(np.sign(score)), BLACK: float(-np.sign(score))}
+        return {RED: 0.0, BLACK: 0.0}
     return {RED: 0.0, BLACK: 0.0}
 
 
@@ -51,7 +47,7 @@ def generate_self_play(
     lengths: list[int] = []
     nodes_per_second: list[float] = []
     red_scores: list[float] = []
-    for game_id in range(games):
+    for _game_id in range(games):
         board = Board.from_fen(start_fen)
         trajectory: list[tuple[str, str, dict[int, float]]] = []
         for _ in range(max_plies):
@@ -157,4 +153,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -13,5 +13,5 @@ python -m train.self_play \
 python -m eval.evaluate \
   --config configs/macbook_tiny.yaml \
   --checkpoint runs/macbook_tiny/checkpoints/latest.pt \
-  --opponent random
-
+  --opponent random \
+  --output-dir runs/macbook_tiny/evaluation-random

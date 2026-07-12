@@ -86,19 +86,33 @@ class Board:
     @classmethod
     def from_fen(cls, fen: str) -> "Board":
         parts = fen.strip().split()
+        if not 1 <= len(parts) <= 2:
+            raise ValueError(f"Expected placement and optional side token, got {fen!r}")
         placement = parts[0]
-        turn = RED if len(parts) == 1 or parts[1].lower().startswith("r") else BLACK
+        side = "r" if len(parts) == 1 else parts[1].lower()
+        if side not in {"r", "b"}:
+            raise ValueError(f"Expected side token 'r' or 'b', got {side!r}")
+        turn = RED if side == "r" else BLACK
         squares: list[str | None] = []
-        for rank in placement.split("/"):
+        ranks = placement.split("/")
+        if len(ranks) != BOARD_ROWS:
+            raise ValueError(f"Expected {BOARD_ROWS} ranks, got {len(ranks)}")
+        for rank_index, rank in enumerate(ranks):
+            rank_squares: list[str | None] = []
             for ch in rank:
                 if ch.isdigit():
-                    squares.extend([None] * int(ch))
+                    rank_squares.extend([None] * int(ch))
                 elif ch.upper() in PIECE_KINDS:
-                    squares.append(ch)
+                    rank_squares.append(ch)
                 else:
                     raise ValueError(f"Unknown FEN piece {ch!r}")
-        if len(squares) != BOARD_SIZE:
-            raise ValueError(f"Expected 90 squares, got {len(squares)} from {fen!r}")
+            if len(rank_squares) != BOARD_COLS:
+                raise ValueError(
+                    f"Expected {BOARD_COLS} squares in rank {rank_index}, got {len(rank_squares)}"
+                )
+            squares.extend(rank_squares)
+        if squares.count("K") > 1 or squares.count("k") > 1:
+            raise ValueError("A position cannot contain multiple kings for one side")
         return cls(squares, turn)
 
     def copy(self) -> "Board":
@@ -170,7 +184,7 @@ class Board:
         if black_king is None:
             return 1.0 if color == RED else -1.0
         if not self.legal_moves():
-            return -1.0
+            return -1.0 if color == self.turn else 1.0
         return 0.0
 
     def is_in_check(self, color: str) -> bool:
@@ -332,4 +346,3 @@ class Board:
         for nr, nc in candidates:
             if self._can_land(color, nr, nc):
                 yield Move(square, rc_to_sq(nr, nc))
-

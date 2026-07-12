@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import shlex
 import subprocess
 import threading
 import time
@@ -16,6 +17,13 @@ class EngineResult:
     move: Move
     score_cp: float | None
     raw_output: str
+
+
+def command_argv(command: str) -> list[str]:
+    argv = shlex.split(command)
+    if not argv:
+        raise ValueError("Engine command must not be empty")
+    return argv
 
 
 def score_to_value(score_cp: float | None, scale: float = 1000.0) -> float:
@@ -67,8 +75,8 @@ class UcciEngine:
 
     def __init__(self, command: str, timeout: float = 10.0, init_command: str = "uci"):
         self.proc = subprocess.Popen(
-            command,
-            shell=True,
+            command_argv(command),
+            shell=False,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
