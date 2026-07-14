@@ -398,9 +398,11 @@ def _manifest_errors(manifest: dict[str, Any], *, paired: bool) -> list[str]:
         ):
             errors.append(f"manifest {field} requires string path and sha256")
     source = manifest.get("source")
-    if source is not None:
+    if "source" in manifest:
         if not isinstance(source, dict):
             errors.append("manifest source must be an object")
+        elif source.keys() != {"git_commit", "dirty"}:
+            errors.append("manifest source must contain exactly git_commit and dirty")
         elif (
             not isinstance(source.get("git_commit"), str)
             or not source.get("git_commit", "").strip()

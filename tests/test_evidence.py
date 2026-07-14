@@ -211,6 +211,32 @@ def test_validator_rejects_empty_git_commit(tmp_path) -> None:
     assert "manifest source requires git_commit and dirty" in result["errors"]
 
 
+def test_validator_rejects_unexpected_source_fields(tmp_path) -> None:
+    run_dir = _write_valid_single_game_bundle(tmp_path, "unexpected-source-field")
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source"]["unexpected"] = "accepted"
+    manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    result = validate_evidence_bundle(run_dir)
+
+    assert result["valid"] is False
+    assert "manifest source must contain exactly git_commit and dirty" in result["errors"]
+
+
+def test_validator_rejects_null_source(tmp_path) -> None:
+    run_dir = _write_valid_single_game_bundle(tmp_path, "null-source")
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source"] = None
+    manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    result = validate_evidence_bundle(run_dir)
+
+    assert result["valid"] is False
+    assert "manifest source must be an object" in result["errors"]
+
+
 def test_validator_rejects_booleans_substituted_for_summary_numbers(tmp_path) -> None:
     run_dir = _write_valid_single_game_bundle(tmp_path, "boolean-summary")
     summary_path = run_dir / "summary.json"
