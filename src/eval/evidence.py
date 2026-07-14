@@ -355,6 +355,21 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _json_values_match(expected: Any, actual: Any) -> bool:
+    """Compare JSON values without Python's bool/int equality coercion."""
+    if type(expected) is not type(actual):
+        return False
+    if isinstance(expected, dict):
+        return expected.keys() == actual.keys() and all(
+            _json_values_match(expected[key], actual[key]) for key in expected
+        )
+    if isinstance(expected, list):
+        return len(expected) == len(actual) and all(
+            _json_values_match(left, right) for left, right in zip(expected, actual, strict=True)
+        )
+    return bool(expected == actual)
+
+
 def _manifest_errors(manifest: dict[str, Any], *, paired: bool) -> list[str]:
     errors: list[str] = []
     required_fields = (
@@ -386,8 +401,10 @@ def _manifest_errors(manifest: dict[str, Any], *, paired: bool) -> list[str]:
     if source is not None:
         if not isinstance(source, dict):
             errors.append("manifest source must be an object")
-        elif not isinstance(source.get("git_commit"), str) or not isinstance(
-            source.get("dirty"), bool
+        elif (
+            not isinstance(source.get("git_commit"), str)
+            or not source.get("git_commit", "").strip()
+            or type(source.get("dirty")) is not bool
         ):
             errors.append("manifest source requires git_commit and dirty")
     seed = manifest.get("seed")
@@ -567,7 +584,9 @@ def validate_evidence_bundle(run_dir: str | Path) -> dict[str, Any]:
     if any(not isinstance(record, dict) for record in records):
         return {"valid": False, "errors": ["every game record must be an object"]}
 
-    if manifest.get("schema_version") != SCHEMA_VERSION:
+    if type(manifest.get("schema_version")) is not int or manifest.get(
+        "schema_version"
+    ) != SCHEMA_VERSION:
         errors.append("unsupported schema_version")
     if not records:
         errors.append("evidence must contain at least one game")
@@ -614,7 +633,7 @@ def validate_evidence_bundle(run_dir: str | Path) -> dict[str, Any]:
                     )
                 except (KeyError, TypeError, ValueError, OSError) as exc:
                     errors.append(f"cannot reconstruct paired protocol summary: {exc}")
-    if reconstructed is not None and reconstructed != summary:
+    if reconstructed is not None and not _json_values_match(reconstructed, summary):
         errors.append("summary does not match games.jsonl reconstruction")
     artifacts = manifest.get("artifacts")
     for name, expected_hash in artifacts.items() if isinstance(artifacts, dict) else ():

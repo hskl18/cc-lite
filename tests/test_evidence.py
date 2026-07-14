@@ -16,6 +16,36 @@ from xiangqi.board import START_FEN, Board
 OPENING_SUITE = Path(__file__).resolve().parents[1] / "configs/openings/paired-v1.json"
 
 
+def _write_valid_single_game_bundle(tmp_path: Path, name: str) -> Path:
+    checkpoint = tmp_path / f"{name}-model.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    config = tmp_path / f"{name}-config.yaml"
+    config.write_bytes(b"seed: 1\n")
+    run_dir = tmp_path / name
+    write_evidence_bundle(
+        run_dir,
+        records=[
+            {
+                "start_fen": START_FEN,
+                "moves": [],
+                "plies": 0,
+                "final_fen": START_FEN,
+                "model_color": "red",
+                "terminal_reason": "max_plies",
+                "terminal_score": None,
+                "material_delta": 0,
+                "material_adjudication": 0.0,
+            }
+        ],
+        checkpoint_path=checkpoint,
+        config_path=config,
+        seed=1,
+        argv=["python", "-m", "eval.evaluate"],
+        device="cpu",
+    )
+    return run_dir
+
+
 def _write_untrusted_bundle(
     run_dir: Path,
     *,
@@ -153,6 +183,60 @@ def test_evidence_bundle_records_provenance_and_validates_raw_reconstruction(tmp
     assert len(manifest["source"]["git_commit"]) == 40
     assert isinstance(manifest["source"]["dirty"], bool)
     assert validate_evidence_bundle(run_dir) == {"valid": True, "errors": []}
+
+
+def test_validator_rejects_boolean_schema_version(tmp_path) -> None:
+    run_dir = _write_valid_single_game_bundle(tmp_path, "boolean-schema")
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["schema_version"] = True
+    manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    result = validate_evidence_bundle(run_dir)
+
+    assert result["valid"] is False
+    assert "unsupported schema_version" in result["errors"]
+
+
+def test_validator_rejects_empty_git_commit(tmp_path) -> None:
+    run_dir = _write_valid_single_game_bundle(tmp_path, "empty-commit")
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source"]["git_commit"] = ""
+    manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    result = validate_evidence_bundle(run_dir)
+
+    assert result["valid"] is False
+    assert "manifest source requires git_commit and dirty" in result["errors"]
+
+
+def test_validator_rejects_booleans_substituted_for_summary_numbers(tmp_path) -> None:
+    run_dir = _write_valid_single_game_bundle(tmp_path, "boolean-summary")
+    summary_path = run_dir / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    def replace_zeroes_and_ones(value):
+        if isinstance(value, dict):
+            return {key: replace_zeroes_and_ones(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [replace_zeroes_and_ones(item) for item in value]
+        if not isinstance(value, bool) and isinstance(value, (int, float)) and value in (0, 1):
+            return bool(value)
+        return value
+
+    summary_path.write_text(
+        json.dumps(replace_zeroes_and_ones(summary)) + "\n", encoding="utf-8"
+    )
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["artifacts"]["summary.json"] = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    result = validate_evidence_bundle(run_dir)
+
+    assert result["valid"] is False
+    assert "summary does not match games.jsonl reconstruction" in result["errors"]
 
 
 def test_validator_rejects_summary_that_does_not_match_raw_games(tmp_path) -> None:
