@@ -8,7 +8,7 @@ from typing import Protocol
 import numpy as np
 import torch
 
-from xiangqi.board import BLACK, RED, Board, Move
+from xiangqi.board import Board, Move
 from xiangqi.encoding import MoveCodec, encode_board
 
 
@@ -89,7 +89,7 @@ class MCTS:
             search_path = [node]
             while node.expanded():
                 move, node = self._select_child(node)
-                scratch.push(move)
+                scratch._push_legal(move)
                 search_path.append(node)
             value = self._evaluate_terminal_or_expand(node, scratch)
             self._backpropagate(search_path, value)
@@ -100,15 +100,10 @@ class MCTS:
         return move, policy
 
     def _evaluate_terminal_or_expand(self, node: Node, board: Board) -> float:
-        red_king = board.king_square(RED)
-        black_king = board.king_square(BLACK)
+        adjudication = board.adjudication()
+        if adjudication is not None:
+            return adjudication.result_for(board.turn)
         legal = board.legal_moves()
-        if red_king is None:
-            return -1.0 if board.turn == RED else 1.0
-        if black_king is None:
-            return 1.0 if board.turn == RED else -1.0
-        if not legal:
-            return -1.0
         priors, value = self.evaluator.evaluate(board)
         for move in legal:
             node.children[move] = Node(prior=priors.get(move, 0.0))
@@ -158,4 +153,3 @@ class MCTS:
         noise = np.random.dirichlet([self.config.dirichlet_alpha] * len(root.children))
         for child, eps in zip(root.children.values(), noise, strict=True):
             child.prior = child.prior * (1.0 - frac) + float(eps) * frac
-

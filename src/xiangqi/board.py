@@ -12,6 +12,23 @@ START_FEN = "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR r"
 
 PIECE_KINDS = ("K", "A", "E", "H", "R", "C", "P")
 PIECE_VALUES = {"K": 0, "A": 20, "E": 20, "H": 45, "R": 90, "C": 50, "P": 10}
+REPETITION_COUNT = 3
+NO_PROGRESS_PLIES = 120
+
+
+@dataclass(frozen=True, slots=True)
+class Adjudication:
+    """A terminal decision under the cc-lite research rules profile."""
+
+    reason: str
+    winner: str | None
+
+    def result_for(self, color: str) -> float:
+        if color not in {RED, BLACK}:
+            raise ValueError(f"Unknown color {color!r}")
+        if self.winner is None:
+            return 0.0
+        return 1.0 if self.winner == color else -1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +44,19 @@ class Move:
         if len(text) != 4:
             raise ValueError(f"Expected four-character move, got {text!r}")
         return cls(parse_square(text[:2]), parse_square(text[2:]))
+
+
+@dataclass(frozen=True, slots=True)
+class _MoveRecord:
+    mover: str
+    gave_check: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _UndoState:
+    move: Move
+    captured: str | None
+    prior_no_progress_plies: int
 
 
 def rc_to_sq(row: int, col: int) -> int:
@@ -65,6 +95,8 @@ def piece_kind(piece: str) -> str:
 
 
 def opposite(color: str) -> str:
+    if color not in {RED, BLACK}:
+        raise ValueError(f"Unknown color {color!r}")
     return BLACK if color == RED else RED
 
 
@@ -76,8 +108,16 @@ class Board:
     """
 
     def __init__(self, squares: list[str | None] | None = None, turn: str = RED):
-        self.squares = squares if squares is not None else [None] * BOARD_SIZE
+        if turn not in {RED, BLACK}:
+            raise ValueError(f"Unknown color {turn!r}")
+        if squares is not None and len(squares) != BOARD_SIZE:
+            raise ValueError(f"Expected {BOARD_SIZE} squares, got {len(squares)}")
+        self.squares = squares.copy() if squares is not None else [None] * BOARD_SIZE
         self.turn = turn
+        self.no_progress_plies = 0
+        self._position_history = [self._position_key()]
+        self._move_history: list[_MoveRecord] = []
+        self._undo_stack: list[_UndoState] = []
 
     @classmethod
     def start(cls) -> "Board":
@@ -101,6 +141,8 @@ class Board:
             rank_squares: list[str | None] = []
             for ch in rank:
                 if ch.isdigit():
+                    if ch == "0":
+                        raise ValueError("FEN empty-square counts must be between 1 and 9")
                     rank_squares.extend([None] * int(ch))
                 elif ch.upper() in PIECE_KINDS:
                     rank_squares.append(ch)
@@ -113,10 +155,31 @@ class Board:
             squares.extend(rank_squares)
         if squares.count("K") > 1 or squares.count("k") > 1:
             raise ValueError("A position cannot contain multiple kings for one side")
+        if squares.count("K") + squares.count("k") == 0:
+            raise ValueError("A position must contain at least one king")
+        if squares.count("K") == squares.count("k") == 1:
+            for color, king in ((RED, "K"), (BLACK, "k")):
+                row, col = sq_to_rc(squares.index(king))
+                if not cls._palace_contains(color, row, col):
+                    raise ValueError(f"The {color} king must be inside its palace")
+        maxima = {"K": 1, "A": 2, "E": 2, "H": 2, "R": 2, "C": 2, "P": 5}
+        for color, is_color in ((RED, str.isupper), (BLACK, str.islower)):
+            for kind, maximum in maxima.items():
+                count = sum(
+                    piece is not None and is_color(piece) and piece.upper() == kind
+                    for piece in squares
+                )
+                if count > maximum:
+                    raise ValueError(f"A position contains too many {color} {kind} pieces")
         return cls(squares, turn)
 
     def copy(self) -> "Board":
-        return Board(self.squares.copy(), self.turn)
+        board = Board(self.squares, self.turn)
+        board.no_progress_plies = self.no_progress_plies
+        board._position_history = self._position_history.copy()
+        board._move_history = self._move_history.copy()
+        board._undo_stack = self._undo_stack.copy()
+        return board
 
     def to_fen(self) -> str:
         ranks = []
@@ -138,32 +201,71 @@ class Board:
         return "/".join(ranks) + (" r" if self.turn == RED else " b")
 
     def piece_at(self, square: int) -> str | None:
+        if not 0 <= square < BOARD_SIZE:
+            raise ValueError(f"Square out of bounds: {square}")
         return self.squares[square]
 
     def push(self, move: Move) -> str | None:
+        if not isinstance(move, Move):
+            raise TypeError(f"Expected Move, got {type(move).__name__}")
+        if (
+            self.king_square(RED) is None
+            or self.king_square(BLACK) is None
+            or self._history_adjudication() is not None
+        ):
+            raise ValueError("Cannot move after the game has ended")
+        legal_moves = set(self._legal_moves_unadjudicated())
+        if not legal_moves:
+            raise ValueError("Cannot move after the game has ended")
+        if move not in legal_moves:
+            raise ValueError(f"Illegal move {move.uci()} for {self.to_fen()}")
+        return self._push_legal(move)
+
+    def _push_legal(self, move: Move) -> str | None:
+        """Apply a move already selected from this position's legal move list."""
+
         piece = self.squares[move.from_sq]
-        if piece is None:
-            raise ValueError(f"No piece on {square_name(move.from_sq)}")
-        captured = self.squares[move.to_sq]
-        self.squares[move.to_sq] = piece
-        self.squares[move.from_sq] = None
-        self.turn = opposite(self.turn)
+        assert piece is not None
+        prior_no_progress_plies = self.no_progress_plies
+        captured = self._push_unchecked(move)
+        if captured is not None or piece_kind(piece) == "P":
+            self.no_progress_plies = 0
+        else:
+            self.no_progress_plies += 1
+        self._move_history.append(
+            _MoveRecord(mover=piece_color(piece), gave_check=self.is_in_check(self.turn))
+        )
+        self._position_history.append(self._position_key())
+        self._undo_stack.append(_UndoState(move, captured, prior_no_progress_plies))
         return captured
 
     def pop(self, move: Move, captured: str | None) -> None:
-        piece = self.squares[move.to_sq]
-        self.squares[move.from_sq] = piece
-        self.squares[move.to_sq] = captured
-        self.turn = opposite(self.turn)
+        if not self._undo_stack:
+            raise ValueError("Cannot pop without a matching push")
+        undo = self._undo_stack[-1]
+        if undo.move != move or undo.captured != captured:
+            raise ValueError("Moves must be popped in reverse push order with the matching capture")
+        self._undo_stack.pop()
+        self._position_history.pop()
+        self._move_history.pop()
+        self.no_progress_plies = undo.prior_no_progress_plies
+        self._pop_unchecked(move, captured)
 
     def legal_moves(self) -> list[Move]:
+        if self._history_adjudication() is not None:
+            return []
+        if self.king_square(RED) is None or self.king_square(BLACK) is None:
+            return []
+        return self._legal_moves_unadjudicated()
+
+    def _legal_moves_unadjudicated(self) -> list[Move]:
         color = self.turn
         legal: list[Move] = []
         for move in self.pseudo_legal_moves(color):
-            captured = self.push(move)
+            captured = self._push_unchecked(move)
             if not self.is_in_check(color):
                 legal.append(move)
-            self.pop(move, captured)
+            self._pop_unchecked(move, captured)
         return legal
 
     def pseudo_legal_moves(self, color: str | None = None) -> Iterable[Move]:
@@ -174,18 +276,71 @@ class Board:
             yield from self._piece_moves(square, piece)
 
     def is_game_over(self) -> bool:
-        return self.king_square(RED) is None or self.king_square(BLACK) is None or not self.legal_moves()
+        return self.adjudication() is not None
 
-    def result_for(self, color: str) -> float:
+    def adjudication(self) -> Adjudication | None:
         red_king = self.king_square(RED)
         black_king = self.king_square(BLACK)
         if red_king is None:
-            return -1.0 if color == RED else 1.0
+            return Adjudication("king_capture", BLACK)
         if black_king is None:
-            return 1.0 if color == RED else -1.0
-        if not self.legal_moves():
-            return -1.0 if color == self.turn else 1.0
+            return Adjudication("king_capture", RED)
+        history_result = self._history_adjudication()
+        if history_result is not None:
+            return history_result
+        if not self._legal_moves_unadjudicated():
+            return Adjudication("no_legal_moves", opposite(self.turn))
+        return None
+
+    def result_for(self, color: str) -> float:
+        if color not in {RED, BLACK}:
+            raise ValueError(f"Unknown color {color!r}")
+        result = self.adjudication()
+        if result is not None:
+            return result.result_for(color)
         return 0.0
+
+    def repetition_count(self) -> int:
+        key = self._position_key()
+        return sum(previous == key for previous in self._position_history)
+
+    def _history_adjudication(self) -> Adjudication | None:
+        occurrence_indices = [
+            index
+            for index, key in enumerate(self._position_history)
+            if key == self._position_history[-1]
+        ]
+        if len(occurrence_indices) >= REPETITION_COUNT:
+            cycle_start = occurrence_indices[-REPETITION_COUNT]
+            cycle_records = self._move_history[cycle_start:]
+            perpetual_checkers = []
+            for color in (RED, BLACK):
+                records = [record for record in cycle_records if record.mover == color]
+                if records and all(record.gave_check for record in records):
+                    perpetual_checkers.append(color)
+            if len(perpetual_checkers) == 1:
+                return Adjudication("perpetual_check", opposite(perpetual_checkers[0]))
+            return Adjudication("threefold_repetition", None)
+        if self.no_progress_plies >= NO_PROGRESS_PLIES:
+            return Adjudication("no_progress_120_plies", None)
+        return None
+
+    def _position_key(self) -> tuple[tuple[str | None, ...], str]:
+        return tuple(self.squares), self.turn
+
+    def _push_unchecked(self, move: Move) -> str | None:
+        piece = self.squares[move.from_sq]
+        captured = self.squares[move.to_sq]
+        self.squares[move.to_sq] = piece
+        self.squares[move.from_sq] = None
+        self.turn = opposite(self.turn)
+        return captured
+
+    def _pop_unchecked(self, move: Move, captured: str | None) -> None:
+        piece = self.squares[move.to_sq]
+        self.squares[move.from_sq] = piece
+        self.squares[move.to_sq] = captured
+        self.turn = opposite(self.turn)
 
     def is_in_check(self, color: str) -> bool:
         king = self.king_square(color)
@@ -235,7 +390,8 @@ class Board:
         target = self.squares[rc_to_sq(row, col)]
         return target is None or piece_color(target) != color
 
-    def _palace_contains(self, color: str, row: int, col: int) -> bool:
+    @staticmethod
+    def _palace_contains(color: str, row: int, col: int) -> bool:
         if not 3 <= col <= 5:
             return False
         return 7 <= row <= 9 if color == RED else 0 <= row <= 2
