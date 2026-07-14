@@ -21,6 +21,7 @@ Each opening and seed defines one pair of games.
 Checkpoint A plays Red in leg one and Black in leg two from the identical FEN with the identical random seed.
 The pair is the statistical resampling unit.
 The canonical default seeds are `1`, `7`, and `19`.
+A schedule runs every declared seed for one opening before advancing to the next opening, so early stopping prefixes remain balanced across seeds.
 A publishable comparison must use at least two distinct seeds, while a local smoke run may use one seed if it is labeled as a smoke run.
 
 The following command runs the pinned protocol and writes raw evidence:

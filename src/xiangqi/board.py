@@ -219,6 +219,11 @@ class Board:
             raise ValueError("Cannot move after the game has ended")
         if move not in legal_moves:
             raise ValueError(f"Illegal move {move.uci()} for {self.to_fen()}")
+        return self._push_legal(move)
+
+    def _push_legal(self, move: Move) -> str | None:
+        """Apply a move already selected from this position's legal move list."""
+
         piece = self.squares[move.from_sq]
         assert piece is not None
         prior_no_progress_plies = self.no_progress_plies

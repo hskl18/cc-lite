@@ -11,7 +11,7 @@ from typing import Any
 
 import torch
 
-from eval.openings import load_opening_suite
+from eval.openings import load_opening_suite, opening_suite_summary
 from eval.paired import paired_record_errors, sequential_stop_decision, summarize_paired_records
 from xiangqi.board import Board, Move
 
@@ -95,12 +95,7 @@ def _add_paired_protocol_summary(
         confidence=float(protocol["confidence"]),
         superiority_margin=float(protocol["superiority_margin"]),
     )
-    summary["opening_suite"] = {
-        "suite_id": suite.suite_id,
-        "version": suite.version,
-        "sha256": suite.sha256,
-        "positions": len(suite.positions),
-    }
+    summary["opening_suite"] = opening_suite_summary(suite)
 
 
 def _replay_game_record(record: dict[str, Any], index: int) -> list[str]:

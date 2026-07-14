@@ -64,6 +64,8 @@ python -m data.ingest \
 ```
 
 The CLI refuses to replace known output artifacts unless `--force` is passed.
+It stages every artifact beside the destination and publishes the completed directory only after every write succeeds.
+If a forced replacement fails during staging, the previous complete bundle remains unchanged.
 It validates each move against the board's legal moves before advancing the position.
 It also rejects malformed FENs, missing kings, malformed move tokens, inconsistent terminal results, duplicate result conflicts, and reused record IDs that refer to different move sequences.
 The rejection `code` distinguishes these cases with values such as `invalid_fen`, `invalid_move`, `illegal_move`, `terminal_result_conflict`, `duplicate_game`, and `record_id_conflict`.

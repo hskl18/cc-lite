@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from xiangqi.board import BOARD_COLS, BOARD_ROWS, START_FEN, Board, Move, rc_to_sq
+from xiangqi.board import BLACK, BOARD_COLS, BOARD_ROWS, RED, START_FEN, Board, Move, rc_to_sq
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +24,15 @@ class OpeningSuite:
     positions: tuple[OpeningPosition, ...]
     path: Path
     sha256: str
+
+
+def opening_suite_summary(suite: OpeningSuite) -> dict[str, int | str]:
+    return {
+        "suite_id": suite.suite_id,
+        "version": suite.version,
+        "sha256": suite.sha256,
+        "positions": len(suite.positions),
+    }
 
 
 def mirror_fen(fen: str) -> str:
@@ -74,7 +83,7 @@ def load_opening_suite(path: str | Path) -> OpeningSuite:
             raise ValueError(f"Duplicate opening id {opening_id!r}")
         fen = _require_string(item.get("fen"), f"positions[{index}].fen")
         board = Board.from_fen(fen)
-        if board.king_square("red") is None or board.king_square("black") is None:
+        if board.king_square(RED) is None or board.king_square(BLACK) is None:
             raise ValueError(f"Opening {opening_id!r} must contain both kings")
         if not board.legal_moves():
             raise ValueError(f"Opening {opening_id!r} must have at least one legal move")

@@ -311,7 +311,9 @@ def test_paired_bundle_reconstructs_protocol_summary_from_raw_games(tmp_path) ->
     opponent.write_bytes(b"opponent")
     config = tmp_path / "config.yaml"
     config.write_text("seed: 1\n", encoding="utf-8")
-    opening_suite = Path("configs/openings/paired-v1.json").resolve()
+    opening_suite = (
+        Path(__file__).resolve().parents[1] / "configs/openings/paired-v1.json"
+    )
     opening = load_opening_suite(opening_suite).positions[0]
     run_dir = tmp_path / "paired"
     records = [

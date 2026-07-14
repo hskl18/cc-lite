@@ -89,7 +89,7 @@ class MCTS:
             search_path = [node]
             while node.expanded():
                 move, node = self._select_child(node)
-                scratch.push(move)
+                scratch._push_legal(move)
                 search_path.append(node)
             value = self._evaluate_terminal_or_expand(node, scratch)
             self._backpropagate(search_path, value)

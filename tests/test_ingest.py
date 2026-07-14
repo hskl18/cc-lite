@@ -142,6 +142,27 @@ def test_conflicting_duplicate_results_are_all_rejected(tmp_path: Path):
     ]
 
 
+def test_record_id_conflict_rejects_every_distinct_game(tmp_path: Path):
+    input_path = tmp_path / "games.jsonl"
+    provenance_path = tmp_path / "provenance.json"
+    input_path.write_text(
+        json.dumps({"record_id": "same-id", "moves": ["a6a5"], "result": "1-0"})
+        + "\n"
+        + json.dumps({"record_id": "same-id", "moves": ["c6c5"], "result": "0-1"})
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_json(provenance_path, _provenance())
+
+    manifest = ingest_records(input_path, provenance_path, tmp_path / "output")
+
+    assert manifest["deduplication"]["accepted_games"] == 0
+    assert [item["code"] for item in _read_jsonl(tmp_path / "output" / "rejections.jsonl")] == [
+        "record_id_conflict",
+        "record_id_conflict",
+    ]
+
+
 def test_required_provenance_is_enforced_before_outputs_are_created(tmp_path: Path):
     input_path = tmp_path / "games.jsonl"
     provenance_path = tmp_path / "provenance.json"
@@ -220,6 +241,71 @@ def test_existing_artifacts_require_force(tmp_path: Path):
         ingest_records(input_path, provenance_path, output_dir)
 
     ingest_records(input_path, provenance_path, output_dir, force=True)
+
+
+def test_write_failure_does_not_publish_a_partial_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    input_path = tmp_path / "games.jsonl"
+    provenance_path = tmp_path / "provenance.json"
+    output_dir = tmp_path / "output"
+    input_path.write_text(
+        json.dumps({"record_id": "one", "moves": ["a6a5"], "result": "1-0"})
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_json(provenance_path, _provenance())
+    original_open = Path.open
+
+    def fail_while_writing_train(path: Path, *args, **kwargs):
+        if ".train.jsonl." in path.name:
+            raise OSError("injected artifact write failure")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", fail_while_writing_train)
+
+    with pytest.raises(OSError, match="injected artifact write failure"):
+        ingest_records(input_path, provenance_path, output_dir)
+
+    assert not output_dir.exists()
+
+
+def test_force_write_failure_preserves_the_previous_complete_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    input_path = tmp_path / "games.jsonl"
+    provenance_path = tmp_path / "provenance.json"
+    output_dir = tmp_path / "output"
+    input_path.write_text(
+        json.dumps({"record_id": "one", "moves": ["a6a5"], "result": "1-0"})
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_json(provenance_path, _provenance())
+    ingest_records(input_path, provenance_path, output_dir)
+    previous = {
+        name: (output_dir / name).read_bytes()
+        for name in (
+            "games.jsonl",
+            "train.jsonl",
+            "validation.jsonl",
+            "rejections.jsonl",
+            "manifest.json",
+        )
+    }
+    original_open = Path.open
+
+    def fail_while_writing_train(path: Path, *args, **kwargs):
+        if ".train.jsonl." in path.name:
+            raise OSError("injected force write failure")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", fail_while_writing_train)
+
+    with pytest.raises(OSError, match="injected force write failure"):
+        ingest_records(input_path, provenance_path, output_dir, force=True)
+
+    assert {name: (output_dir / name).read_bytes() for name in previous} == previous
 
 
 def test_module_cli_runs_end_to_end(tmp_path: Path):

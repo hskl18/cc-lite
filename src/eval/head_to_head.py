@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 
 from eval.evidence import summarize_game_records, write_evidence_bundle
-from eval.openings import OpeningSuite, load_opening_suite
+from eval.openings import OpeningSuite, load_opening_suite, opening_suite_summary
 from eval.paired import build_paired_schedule, sequential_stop_decision
 from mcts.search import MCTS, SearchConfig, TorchEvaluator
 from model.checkpoint import load_checkpoint
@@ -158,6 +158,8 @@ def play_paired_match(
     schedule = build_paired_schedule(suite, seeds)
     available_pairs = len(schedule) // 2
     pair_cap = available_pairs if max_pairs is None else min(max_pairs, available_pairs)
+    if min_pairs < 1:
+        raise ValueError("min_pairs must be at least 1")
     if min_pairs > pair_cap:
         raise ValueError("min_pairs cannot exceed the available or configured pair cap")
 
@@ -190,12 +192,7 @@ def play_paired_match(
             break
     summary = summarize_game_records(records)
     summary["sequential_stop"] = stop
-    summary["opening_suite"] = {
-        "suite_id": suite.suite_id,
-        "version": suite.version,
-        "sha256": suite.sha256,
-        "positions": len(suite.positions),
-    }
+    summary["opening_suite"] = opening_suite_summary(suite)
     paired_protocol = {
         "min_pairs": min_pairs,
         "max_pairs": pair_cap,

@@ -30,8 +30,8 @@ def build_paired_schedule(suite: OpeningSuite, seeds: Sequence[int]) -> list[Sch
     if len(set(normalized_seeds)) != len(normalized_seeds):
         raise ValueError("Evaluation seeds must be unique")
     games: list[ScheduledGame] = []
-    for seed in normalized_seeds:
-        for opening in suite.positions:
+    for opening in suite.positions:
+        for seed in normalized_seeds:
             pair_id = f"{suite.suite_id}:{opening.opening_id}:seed-{seed}"
             for leg, color in ((1, RED), (2, BLACK)):
                 games.append(

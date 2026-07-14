@@ -2,9 +2,13 @@ from mcts.search import MCTS, Node, SearchConfig, UniformEvaluator
 from xiangqi.board import Board, Move
 
 
-def test_mcts_uniform_smoke():
+def test_mcts_uniform_smoke(monkeypatch):
+    def reject_public_push(*_args, **_kwargs):
+        raise AssertionError("MCTS must use the trusted path for legal tree edges")
+
     board = Board.start()
     search = MCTS(UniformEvaluator(), SearchConfig(simulations=4))
+    monkeypatch.setattr(Board, "push", reject_public_push)
     move, policy = search.run(board)
     assert move in board.legal_moves()
     assert abs(sum(policy.values()) - 1.0) < 1e-6

@@ -12,7 +12,7 @@ from eval.openings import load_opening_suite, mirror_fen
 from eval.paired import build_paired_schedule, sequential_stop_decision
 from xiangqi.board import BLACK, RED
 
-OPENING_SUITE = Path("configs/openings/paired-v1.json")
+OPENING_SUITE = Path(__file__).resolve().parents[1] / "configs/openings/paired-v1.json"
 
 
 def _record(
@@ -73,6 +73,21 @@ def test_schedule_pairs_both_candidate_colors_for_every_opening_and_seed() -> No
         assert {game.candidate_color for game in pair} == {RED, BLACK}
         assert len({game.start_fen for game in pair}) == 1
         assert len({game.seed for game in pair}) == 1
+
+
+def test_schedule_balances_seeds_in_early_complete_pair_prefix() -> None:
+    suite = load_opening_suite(OPENING_SUITE)
+    seeds = [3, 11, 29]
+
+    schedule = build_paired_schedule(suite, seeds)
+    pairs = [schedule[index : index + 2] for index in range(0, len(schedule), 2)]
+
+    assert all([game.pair_leg for game in pair] == [1, 2] for pair in pairs)
+    assert all([game.candidate_color for game in pair] == [RED, BLACK] for pair in pairs)
+    assert [pair[0].seed for pair in pairs[: len(seeds)]] == seeds
+    assert {pair[0].opening_id for pair in pairs[: len(seeds)]} == {
+        suite.positions[0].opening_id
+    }
 
 
 def test_schedule_rejects_duplicate_seeds() -> None:

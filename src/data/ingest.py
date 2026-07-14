@@ -4,6 +4,8 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
+import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -291,6 +293,35 @@ def _atomic_write(path: Path, content: str) -> None:
         temp_path.unlink(missing_ok=True)
 
 
+def _stage_output_directory(output_dir: Path) -> Path:
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    staging_dir = Path(
+        tempfile.mkdtemp(
+            prefix=f".{output_dir.name}.",
+            suffix=".staging",
+            dir=output_dir.parent,
+        )
+    )
+    if output_dir.exists():
+        shutil.copytree(output_dir, staging_dir, dirs_exist_ok=True, symlinks=True)
+    return staging_dir
+
+
+def _publish_output_directory(staging_dir: Path, output_dir: Path) -> None:
+    if not output_dir.exists():
+        staging_dir.replace(output_dir)
+        return
+
+    backup_dir = staging_dir.with_name(f"{staging_dir.name}.previous")
+    output_dir.replace(backup_dir)
+    try:
+        staging_dir.replace(output_dir)
+    except BaseException:
+        backup_dir.replace(output_dir)
+        raise
+    shutil.rmtree(backup_dir)
+
+
 def ingest_records(
     input_path: str | Path,
     provenance_path: str | Path,
@@ -437,59 +468,66 @@ def ingest_records(
             }
 
     rejections.sort(key=lambda item: (item["line_number"], item["code"]))
-    output_dir.mkdir(parents=True, exist_ok=True)
-    _write_jsonl(output_dir / "games.jsonl", game_records())
-    train_samples = _write_jsonl(
-        output_dir / "train.jsonl",
-        _samples_for(split_candidates["train"], provenance_fingerprint),
-    )
-    validation_samples = _write_jsonl(
-        output_dir / "validation.jsonl",
-        _samples_for(split_candidates["validation"], provenance_fingerprint),
-    )
-    _write_jsonl(output_dir / "rejections.jsonl", rejections)
-    artifact_hashes = {
-        name: _file_sha256(output_dir / name)
-        for name in ARTIFACT_NAMES
-        if name != "manifest.json"
-    }
-    manifest = {
-        "schema_version": SCHEMA_VERSION,
-        "format": "cc-lite-iccs-ucci-jsonl",
-        "input": {
-            "filename": input_path.name,
-            "sha256": _file_sha256(input_path),
-            "records": input_records,
-        },
-        "provenance": provenance,
-        "provenance_fingerprint": provenance_fingerprint,
-        "deduplication": {
-            "identity": "sha256 of canonical initial_fen and normalized moves",
-            "accepted_games": len(accepted),
-            "rejected_records": len(rejections),
-        },
-        "split": {
-            "algorithm": "sha256(seed + ':' + game_hash), first 64 bits",
-            "seed": split_seed,
-            "validation_fraction": validation_fraction,
-            "train": {
-                "games": len(split_candidates["train"]),
-                "samples": train_samples,
-                "fingerprint": _fingerprint(
-                    [candidate.game_hash for candidate in split_candidates["train"]]
-                ),
+    staging_dir = _stage_output_directory(output_dir)
+    try:
+        _write_jsonl(staging_dir / "games.jsonl", game_records())
+        train_samples = _write_jsonl(
+            staging_dir / "train.jsonl",
+            _samples_for(split_candidates["train"], provenance_fingerprint),
+        )
+        validation_samples = _write_jsonl(
+            staging_dir / "validation.jsonl",
+            _samples_for(split_candidates["validation"], provenance_fingerprint),
+        )
+        _write_jsonl(staging_dir / "rejections.jsonl", rejections)
+        artifact_hashes = {
+            name: _file_sha256(staging_dir / name)
+            for name in ARTIFACT_NAMES
+            if name != "manifest.json"
+        }
+        manifest = {
+            "schema_version": SCHEMA_VERSION,
+            "format": "cc-lite-iccs-ucci-jsonl",
+            "input": {
+                "filename": input_path.name,
+                "sha256": _file_sha256(input_path),
+                "records": input_records,
             },
-            "validation": {
-                "games": len(split_candidates["validation"]),
-                "samples": validation_samples,
-                "fingerprint": _fingerprint(
-                    [candidate.game_hash for candidate in split_candidates["validation"]]
-                ),
+            "provenance": provenance,
+            "provenance_fingerprint": provenance_fingerprint,
+            "deduplication": {
+                "identity": "sha256 of canonical initial_fen and normalized moves",
+                "accepted_games": len(accepted),
+                "rejected_records": len(rejections),
             },
-        },
-        "artifacts": artifact_hashes,
-    }
-    _atomic_write(output_dir / "manifest.json", json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+            "split": {
+                "algorithm": "sha256(seed + ':' + game_hash), first 64 bits",
+                "seed": split_seed,
+                "validation_fraction": validation_fraction,
+                "train": {
+                    "games": len(split_candidates["train"]),
+                    "samples": train_samples,
+                    "fingerprint": _fingerprint(
+                        [candidate.game_hash for candidate in split_candidates["train"]]
+                    ),
+                },
+                "validation": {
+                    "games": len(split_candidates["validation"]),
+                    "samples": validation_samples,
+                    "fingerprint": _fingerprint(
+                        [candidate.game_hash for candidate in split_candidates["validation"]]
+                    ),
+                },
+            },
+            "artifacts": artifact_hashes,
+        }
+        _atomic_write(
+            staging_dir / "manifest.json",
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        )
+        _publish_output_directory(staging_dir, output_dir)
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
     return manifest
 
 
