@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from eval.adjudication import material_adjudication
 from eval.evidence import summarize_game_records, write_evidence_bundle
 from eval.openings import OpeningSuite, load_opening_suite, opening_suite_summary
 from eval.paired import build_paired_schedule, sequential_stop_decision
@@ -21,12 +22,6 @@ from xiangqi.board import BLACK, RED, START_FEN, Board
 def _terminal_score(board: Board, a_color: str) -> float | None:
     adjudication = board.adjudication()
     return None if adjudication is None else adjudication.result_for(a_color)
-
-
-def _material_adjudication(material_delta: int) -> float:
-    if abs(material_delta) < 20:
-        return 0.0
-    return 1.0 if material_delta > 0 else -1.0
 
 
 def play_match(
@@ -100,12 +95,12 @@ def _play_scheduled_pair(
             terminal_reason = "max_plies"
             terminal_score = None
             material_delta = board.material_score(scheduled.candidate_color)
-            material_adjudication = _material_adjudication(material_delta)
+            material_adjudication_value = material_adjudication(material_delta)
         elif adjudication is not None:
             terminal_reason = adjudication.reason
             terminal_score = adjudication.result_for(scheduled.candidate_color)
             material_delta = None
-            material_adjudication = None
+            material_adjudication_value = None
         else:
             raise RuntimeError("Paired game ended without adjudication or max-plies truncation")
         records.append(
@@ -125,7 +120,7 @@ def _play_scheduled_pair(
                 "terminal_reason": terminal_reason,
                 "terminal_score": terminal_score,
                 "material_delta": material_delta,
-                "material_adjudication": material_adjudication,
+                "material_adjudication": material_adjudication_value,
                 "illegal_move_count": 0,
                 "avg_nodes_per_second": (
                     sum(nodes_per_second) / len(nodes_per_second) if nodes_per_second else None

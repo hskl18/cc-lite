@@ -89,7 +89,18 @@ Validate a written bundle with:
 python -m eval.evidence validate --run-dir evidence/my-paired-run
 ```
 
-Validation reconstructs the summary from raw games, verifies artifact hashes and provenance hashes, checks pair invariants, and rejects a terminal score attached to a `max_plies` record.
+Every raw game must include a typed `start_fen`, `moves`, `plies`, and `final_fen` replay chain.
+Validation replays every move, requires `plies` to equal the raw move count, verifies the final FEN, and confirms the declared terminal or truncation state.
+Unpaired records must declare a valid `model_color` perspective, while paired records must declare a valid `candidate_color` perspective.
+If both color fields are present they must agree, and missing, null, or invalid perspective fields fail validation.
+For a `max_plies` record, validation recomputes `material_delta` from the replayed board and derives `material_adjudication` from the shared adjudication rule.
+Published material fields must match those reconstructed values exactly.
+For paired evidence, validation rebuilds the canonical schedule from the pinned opening suite and manifest seeds, then requires the raw games to be an exact complete-pair prefix within `paired_protocol.max_pairs`.
+The presence of any paired record metadata requires a complete paired protocol, a pinned opening suite, and manifest seeds.
+Partially paired records cannot fall back to unpaired validation.
+The positional comparison covers deterministic game and pair identifiers, pair legs, opening identifiers, starting FENs, seeds, and candidate colors, so skipped, reordered, duplicated, or extra schedule slots fail closed.
+An early-stopped bundle must end on the first complete-pair boundary where the reconstructed sequential rule stops, and its summary must match the reconstructed stop decision and attempt counts.
+Validation also reconstructs the remaining summary fields, verifies artifact hashes and provenance hashes, checks pair invariants, and rejects a terminal score attached to a `max_plies` record.
 The evidence manifest records both checkpoint hashes, the config hash, the opening-suite hash, all evaluation seeds, the source commit, the command line, and the runtime environment.
 
 Do not publish an Elo or strength claim from an incomplete run, a one-seed run, a debug simulation budget, or an invalid evidence bundle.

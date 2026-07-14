@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 
+from eval.adjudication import material_adjudication
 from eval.baselines import material_move, random_move
 from eval.engine import UcciEngine
 from eval.evidence import summarize_game_records, write_evidence_bundle
@@ -18,12 +19,6 @@ def _terminal_result(board: Board, model_color: str) -> tuple[str, float] | None
     if adjudication is None:
         return None
     return adjudication.reason, adjudication.result_for(model_color)
-
-
-def _material_adjudication(material_delta: int) -> float:
-    if abs(material_delta) < 20:
-        return 0.0
-    return 1.0 if material_delta > 0 else -1.0
 
 
 def evaluate_checkpoint(
@@ -82,11 +77,11 @@ def evaluate_checkpoint(
                 terminal_reason = "max_plies"
                 terminal_score = None
                 material_delta = board.material_score(model_color)
-                material_adjudication = _material_adjudication(material_delta)
+                material_adjudication_value = material_adjudication(material_delta)
             elif terminal is not None:
                 terminal_reason, terminal_score = terminal
                 material_delta = None
-                material_adjudication = None
+                material_adjudication_value = None
             else:
                 raise RuntimeError("Evaluation ended without a terminal result or max-plies truncation")
             records.append(
@@ -102,7 +97,7 @@ def evaluate_checkpoint(
                     "terminal_reason": terminal_reason,
                     "terminal_score": terminal_score,
                     "material_delta": material_delta,
-                    "material_adjudication": material_adjudication,
+                    "material_adjudication": material_adjudication_value,
                     "illegal_move_count": 0,
                     "avg_nodes_per_second": (
                         sum(game_nodes) / len(game_nodes) if game_nodes else None
