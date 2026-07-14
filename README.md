@@ -3,22 +3,20 @@
 `cc-lite` is a small but serious AlphaZero-style research baseline for Chinese Chess / Xiangqi.
 It is designed to run on a normal MacBook CPU/MPS setup or one modest consumer NVIDIA GPU.
 
-This is not a DeepMind-scale reproduction and it does not claim engine strength. The first
-milestone is a correct-enough Xiangqi rules engine, a compact PyTorch policy-value model,
-model-guided MCTS, self-play data generation, checkpoint training, and baseline evaluation.
+Version 0.2.0 is a rules-pinned, reproducible Xiangqi research workbench with validated record ingestion, bounded supervised bootstrap experiments, paired opening evaluation, and statistical reporting.
+It is not a DeepMind-scale reproduction and it does not claim engine strength.
 
 ## Project Status
 
-`cc-lite` is a research baseline, not a current industry-strength Xiangqi engine. For competitive
-analysis strength, use established engines such as Pikafish:
+`cc-lite` is a research baseline, not a current industry-strength Xiangqi engine.
+For competitive analysis strength, use established engines such as Pikafish:
 
 - Pikafish: <https://github.com/official-pikafish/Pikafish>
 - Px0: <https://github.com/official-pikafish/px0>
 - Fairy-Stockfish: <https://fairy-stockfish.github.io/>
 
-The intended path is practical: supervised data or Pikafish distillation first, then AlphaZero-lite
-self-play. The roadmap toward a stronger benchmark-oriented system is documented in
-[`docs/industry-roadmap.md`](docs/industry-roadmap.md).
+The intended path is practical: supervised data or Pikafish distillation first, then AlphaZero-lite self-play.
+The roadmap toward a stronger benchmark-oriented system is documented in [`docs/industry-roadmap.md`](docs/industry-roadmap.md).
 
 ## Evidence Status
 
@@ -46,15 +44,17 @@ python -m eval.evidence validate --run-dir evidence/debug-v1/material
 ```
 
 This two-game-per-opponent debug protocol is intentionally too small for a strength inference.
-The next publishable research result requires a pinned opening suite, paired colors, multiple training seeds, held-out metrics, confidence intervals, complete rules provenance, and exact reference-engine binary metadata.
+Version 0.2.0 supplies the protocol and tooling needed for a stronger result, but no qualifying paired multi-seed result is committed yet.
+Any future publishable claim must still pass every evidence gate documented in [`docs/evaluation-protocol.md`](docs/evaluation-protocol.md).
 
 ## Architecture
 
-- `src/xiangqi/`: board representation, legal move generation, FEN parsing, board encoding.
+- `src/xiangqi/`: board representation, legal move generation, FEN parsing, board encoding, and pinned adjudication behavior.
+- `src/data/`: validated ICCS/UCCI record ingestion, provenance, deduplication, split fingerprints, and rejection reports.
 - `src/model/`: compact residual CNN policy-value network and checkpoint helpers.
 - `src/mcts/`: PUCT-style MCTS using legal policy masking and value backup.
-- `src/train/`: supervised training, optional engine distillation labels, self-play generation.
-- `src/eval/`: random/material baselines, checkpoint-vs-checkpoint match, FEN analysis.
+- `src/train/`: bounded supervised experiments, optional engine distillation labels, and self-play generation.
+- `src/eval/`: random and material baselines, checkpoint matches, paired opening evaluation, statistical reporting, and FEN analysis.
 - `configs/`: reproducible presets for MacBook, GPU, and quick debug runs.
 - `scripts/`: common smoke, training, and evaluation commands.
 - `tests/`: rules, encoding, MCTS, and training smoke coverage.
@@ -67,11 +67,11 @@ The policy vocabulary is fixed at `90 x 90 = 8100` indices:
 policy_index = from_square * 90 + to_square
 ```
 
-Squares are row-major from Black's home rank to Red's home rank. Files are `a-i`, rows are
-`0-9`, so Black's left rook starts on `a0` and Red's left rook starts on `a9`.
+Squares are row-major from Black's home rank to Red's home rank.
+Files are `a-i`, rows are `0-9`, so Black's left rook starts on `a0` and Red's left rook starts on `a9`.
 
-The model always emits 8100 logits. During MCTS and training metrics, illegal moves are masked
-by the current board's legal move list.
+The model always emits 8100 logits.
+During MCTS and training metrics, illegal moves are masked by the current board's legal move list.
 
 ## Model
 
@@ -97,23 +97,20 @@ pip install -e ".[dev]"
 ```
 
 If PyTorch is already installed for your platform, the editable install is usually enough.
-For CUDA machines, install the PyTorch wheel matching your driver/CUDA version first, then run
-the editable install.
+For CUDA machines, install the PyTorch wheel matching your driver/CUDA version first, then run the editable install.
 
 ## Supported Machines
 
 `cc-lite` is meant to be portable across normal development machines:
 
 - macOS MacBook: uses Apple MPS when PyTorch exposes it, otherwise CPU.
-- Linux PC: works on CPU; uses CUDA automatically when a compatible NVIDIA GPU and CUDA PyTorch
-  build are installed.
-- Windows PC: works on CPU or CUDA through PyTorch. The shell scripts in `scripts/` are Bash
-  scripts, so run them from Git Bash or WSL, or use the explicit `python -m ...` commands below
-  from PowerShell.
+- Linux PC: works on CPU and uses CUDA automatically when a compatible NVIDIA GPU and CUDA PyTorch build are installed.
+- Windows PC: works on CPU or CUDA through PyTorch.
+  The shell scripts in `scripts/` are Bash scripts, so run them from Git Bash or WSL, or use the explicit `python -m ...` commands below from PowerShell.
 - Consumer NVIDIA GPU: use `configs/gpu_small.yaml` as the first non-debug profile.
 
-The `research_debug` config is the safest first run on any machine. It is intentionally tiny and
-only proves that rules, MCTS, training, checkpointing, and evaluation are wired correctly.
+The `research_debug` config is the safest first run on any machine.
+It is intentionally tiny and only proves that rules, MCTS, training, checkpointing, and evaluation are wired correctly.
 
 ## Smoke Training On MacBook
 
@@ -140,8 +137,8 @@ python -m eval.evaluate \
   --output-dir runs/research_debug/evaluation-random
 ```
 
-Expected runtime: seconds to a couple of minutes depending on CPU/MPS behavior. Memory use should
-stay well under normal laptop limits because the debug run uses very few plies and simulations.
+Expected runtime is seconds to a couple of minutes depending on CPU/MPS behavior.
+Memory use should stay well under normal laptop limits because the debug run uses very few plies and simulations.
 
 ## Smoke Training On Windows Or Linux PC
 
@@ -162,9 +159,8 @@ python -m eval.evaluate `
   --output-dir runs/research_debug/evaluation-random
 ```
 
-From Linux, WSL, or Git Bash, either run `./scripts/smoke_macbook.sh` or the Bash commands shown
-in the MacBook smoke section. The script name says MacBook because it uses the tiny debug profile,
-not because it is macOS-only.
+From Linux, WSL, or Git Bash, either run `./scripts/smoke_macbook.sh` or the Bash commands shown in the MacBook smoke section.
+The script name says MacBook because it uses the tiny debug profile, not because it is macOS-only.
 
 ## MacBook Tiny Run
 
@@ -172,8 +168,8 @@ not because it is macOS-only.
 ./scripts/train_macbook_tiny.sh
 ```
 
-This uses the tiny 4-block model, 50 MCTS simulations, small batches, and `fp32`. Expect this to
-be slow compared with real engines; it is meant for reproducibility and pipeline validation.
+This uses the tiny 4-block model, 50 MCTS simulations, small batches, and `fp32`.
+Expect this to be slow compared with real engines because it is meant for reproducibility and pipeline validation.
 
 ## NVIDIA GPU Small Run
 
@@ -181,9 +177,9 @@ be slow compared with real engines; it is meant for reproducibility and pipeline
 ./scripts/train_gpu_small.sh
 ```
 
-This uses the small model, 200 simulations, batch size 64, and CUDA mixed precision when CUDA is
-available. On an RTX-class GPU, memory should remain modest because the network and replay set are
-small. Increase games, replay size, and simulations only after the debug run is stable.
+This uses the small model, 200 simulations, batch size 64, and CUDA mixed precision when CUDA is available.
+On an RTX-class GPU, memory should remain modest because the network and replay set are small.
+Increase games, replay size, and simulations only after the debug run is stable.
 
 Windows users can run the same workflow from Git Bash/WSL, or translate it to PowerShell:
 
@@ -202,27 +198,37 @@ python -m eval.evaluate `
   --output-dir runs/gpu_small/evaluation-material
 ```
 
-## Supervised Bootstrap
+## Validated Record Ingestion
 
-The practical path is to bootstrap from game records before self-play. The baseline loader accepts
-JSONL rows:
-
-```json
-{"fen": "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR r", "move": "a6a5", "value": 0}
-```
-
-Train from records:
+The practical path is to bootstrap from game records before self-play.
+The ingestion CLI accepts documented ICCS/UCCI JSONL records and requires a separate provenance file with source and license information.
 
 ```bash
-export PYTHONPATH=src
-python -m train.supervised \
-  --config configs/macbook_tiny.yaml \
-  --data data/raw/games.jsonl \
-  --checkpoint-out runs/macbook_tiny/checkpoints/supervised.pt
+python -m data.ingest \
+  --input path/to/games.jsonl \
+  --provenance path/to/provenance.json \
+  --output-dir runs/ingested/my-dataset \
+  --validation-fraction 0.1 \
+  --split-seed research-v1
 ```
 
-Historical game ingestion is intentionally thin in this first milestone because public Xiangqi
-record formats vary. Add converters into `src/data/` and emit this JSONL format.
+The output contains normalized games, deterministic training and validation splits, a rejection report, and a hash-linked manifest.
+See [`docs/data-ingestion.md`](docs/data-ingestion.md) for the exact input schema and license boundary.
+
+## Bounded Supervised Bootstrap
+
+The `bootstrap_debug` profile caps the number of records and writes a checkpoint, raw metrics, and a manifest with exact data, config, and checkpoint hashes.
+The bundle is published to its final output directory only after its evidence validator passes.
+
+```bash
+python -m train.experiment run \
+  --config configs/bootstrap_debug.yaml \
+  --data runs/ingested/my-dataset/train.jsonl \
+  --output-dir runs/bootstrap/debug
+
+python -m train.experiment validate \
+  --output-dir runs/bootstrap/debug
+```
 
 ## Optional Pikafish / Engine Distillation
 
@@ -234,11 +240,13 @@ python -m train.distill_engine \
   --engine ./pikafish \
   --positions data/raw/positions.jsonl \
   --output runs/distill_labels.jsonl \
-  --depth 4
+  --depth 4 \
+  --threads 1 \
+  --hash-mb 16
 ```
 
-Then train with the supervised command using `runs/distill_labels.jsonl`. Engine labels are cached
-so experiments are reproducible and do not depend on querying the engine during training.
+The distillation manifest records the exact engine executable hash, any file arguments, positions hash, protocol, depth, thread count, hash size, timeout, command, and generated-label hash.
+Engine labels are cached so experiments are reproducible and do not depend on querying the engine during training.
 
 ## Evaluation And Analysis
 
@@ -272,18 +280,25 @@ python -m eval.evaluate \
   --output-dir runs/macbook_tiny/evaluation-pikafish-depth-4
 ```
 
-Engine binaries and generated engine-label datasets should stay outside git. The `.gitignore`
-covers `runs/`, checkpoint files, and common ML artifacts.
+Engine binaries and generated engine-label datasets should stay outside Git.
+The `.gitignore` covers `runs/`, checkpoint files, and common ML artifacts.
 
-Evaluate a new checkpoint against an older one:
+Run the pinned opening suite with paired colors and multiple seeds:
 
 ```bash
-export PYTHONPATH=src
 python -m eval.head_to_head \
-  --config configs/macbook_tiny.yaml \
-  --checkpoint-a runs/new.pt \
-  --checkpoint-b runs/old.pt
+  --config configs/research_debug.yaml \
+  --checkpoint-a path/to/candidate.pt \
+  --checkpoint-b path/to/reference.pt \
+  --opening-suite configs/openings/paired-v1.json \
+  --seeds 1,7,19 \
+  --min-pairs 8 \
+  --max-pairs 24 \
+  --output-dir evidence/my-paired-run
 ```
+
+The paired report includes per-seed results, paired bootstrap intervals, an uncertainty-bounded Elo difference estimate, draw and truncation rates, and a conservative sequential decision.
+See [`docs/evaluation-protocol.md`](docs/evaluation-protocol.md) before interpreting any result.
 
 Analyze a position:
 
@@ -309,6 +324,9 @@ The current scripts log:
 - per-game moves, seeds, colors, FENs, and termination reasons
 - terminal results separately from max-plies truncation diagnostics
 - evidence manifests with config, checkpoint, source, command, and environment provenance
+- paired-color score and draw intervals from complete opening pairs
+- Elo difference estimates with uncertainty and explicit method labels
+- sequential stopping decisions that exclude capped and incomplete pairs
 
 ## Tests
 
@@ -316,28 +334,23 @@ The current scripts log:
 pytest
 ```
 
-The test suite covers legal move generation, move encoding, MCTS smoke behavior, and a tiny
-training pass.
+The test suite covers the pinned rules profile, randomized legal-game reversibility, ingestion, move encoding, MCTS, bounded training, paired evaluation, statistics, evidence reconstruction, and package metadata.
 
 ## Known Limitations
 
-- Rules do not yet implement full repetition adjudication or advanced tournament draw rules.
-- Checkmate is represented by king capture or no legal moves, not full tournament adjudication.
-- The supervised loader expects normalized JSONL, not every public Xiangqi format.
-- The engine distillation helper supports simple UCI/UCCI-style `position fen` and `go depth`
-  flows, but engine compatibility still needs per-engine validation.
-- Pure random-initialized self-play is supported as a research baseline, but it is not the
-  practical strength path.
-- Current evaluation is intentionally basic: random, material-count, low-depth engine if added,
-  and checkpoint-vs-checkpoint matches.
+- The supported adjudication profile is intentionally narrower than full tournament long-check and long-chase rules.
+- The ingestion pipeline supports a documented JSONL ICCS/UCCI move-record envelope, not binary XQF, CBL, or every historical notation.
+- Engine compatibility still requires per-engine validation even though executable and option provenance is recorded.
+- Pure random-initialized self-play remains a research baseline, not the practical strength path.
+- The paired opening suite is small and designed for reproducible local comparison, not comprehensive opening coverage.
 - The committed debug evidence has two games per opponent and supports no strength conclusion.
 - Throughput values are environment-specific diagnostics and are not gated or presented as stable benchmarks.
 
 ## Next Research Steps
 
-1. Add robust PGN/XQF/CBL converters into the JSONL supervised format.
+1. Add separately tested XQF and CBL converters into the validated JSONL ingestion boundary.
 2. Build a larger replay buffer with checkpoint metadata and train/eval dashboards.
 3. Distill from low-depth Pikafish, then continue with AlphaZero-lite self-play.
-4. Add repetition/check-state history planes and stronger draw adjudication.
+4. Add repetition and check-state history planes for models that need access to adjudication context.
 5. Run ablations over channels, blocks, simulations, replay size, and data source.
-6. Evaluate against low-depth Pikafish when an engine binary is configured.
+6. Complete a qualifying paired multi-seed comparison when a reference checkpoint or engine is available.

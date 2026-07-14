@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "suite_id": "cc-lite-paired-v1",
+  "version": 1,
+  "description": "Small deterministic opening suite derived from legal moves from cc-lite START_FEN.",
+  "mirror_transform": "horizontal-file-reflection",
+  "positions": [
+    {
+      "id": "horse-left",
+      "fen": "r1eakaehr/9/1ch4c1/p1p1p1p1p/9/9/P1P1P1P1P/1CH4C1/9/R1EAKAEHR r",
+      "moves_from_start": ["b9c7", "b0c2"]
+    },
+    {
+      "id": "horse-left-mirror",
+      "fen": "rheakae1r/9/1c4hc1/p1p1p1p1p/9/9/P1P1P1P1P/1C4HC1/9/RHEAKAE1R r",
+      "mirror_of": "horse-left"
+    },
+    {
+      "id": "cannon-left",
+      "fen": "rheakaehr/9/1c7/pCp1p1p1p/9/9/P1P1P1PcP/7C1/9/RHEAKAEHR r",
+      "moves_from_start": ["b7b3", "h2h6"]
+    },
+    {
+      "id": "cannon-left-mirror",
+      "fen": "rheakaehr/9/7c1/p1p1p1pCp/9/9/PcP1P1P1P/1C7/9/RHEAKAEHR r",
+      "mirror_of": "cannon-left"
+    },
+    {
+      "id": "pawn-left",
+      "fen": "rheakaehr/9/1c5c1/2p1p1p1p/p8/P8/2P1P1P1P/1C5C1/9/RHEAKAEHR r",
+      "moves_from_start": ["a6a5", "a3a4"]
+    },
+    {
+      "id": "pawn-left-mirror",
+      "fen": "rheakaehr/9/1c5c1/p1p1p1p2/8p/8P/P1P1P1P2/1C5C1/9/RHEAKAEHR r",
+      "mirror_of": "pawn-left"
+    },
+    {
+      "id": "horse-cannon",
+      "fen": "rheakae1r/9/4c1hc1/p1p1p1p1p/9/9/P1P1P1P1P/1CH1C4/9/R1EAKAEHR r",
+      "moves_from_start": ["b9c7", "h0g2", "h7e7", "b2e2"]
+    },
+    {
+      "id": "horse-cannon-mirror",
+      "fen": "r1eakaehr/9/1ch1c4/p1p1p1p1p/9/9/P1P1P1P1P/4C1HC1/9/RHEAKAE1R r",
+      "mirror_of": "horse-cannon"
+    }
+  ]
+}

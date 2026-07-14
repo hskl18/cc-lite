@@ -14,14 +14,10 @@ from xiangqi.board import BLACK, RED, START_FEN, Board
 
 
 def _terminal_result(board: Board, model_color: str) -> tuple[str, float] | None:
-    if board.king_square(model_color) is None:
-        return "model_king_captured", -1.0
-    opponent = BLACK if model_color == RED else RED
-    if board.king_square(opponent) is None:
-        return "opponent_king_captured", 1.0
-    if not board.legal_moves():
-        return "no_legal_moves", -1.0 if board.turn == model_color else 1.0
-    return None
+    adjudication = board.adjudication()
+    if adjudication is None:
+        return None
+    return adjudication.reason, adjudication.result_for(model_color)
 
 
 def _material_adjudication(material_delta: int) -> float:
@@ -62,7 +58,7 @@ def evaluate_checkpoint(
             ply = 0
             moves: list[str] = []
             game_nodes: list[float] = []
-            while ply < max_plies and board.legal_moves():
+            while ply < max_plies and board.adjudication() is None:
                 if board.turn == model_color:
                     search = MCTS(evaluator, SearchConfig(simulations=simulations, temperature=0.0))
                     move, _ = search.run(board)
@@ -81,8 +77,6 @@ def evaluate_checkpoint(
                 moves.append(move.uci())
                 board.push(move)
                 ply += 1
-                if board.king_square(RED) is None or board.king_square(BLACK) is None:
-                    break
             terminal = _terminal_result(board, model_color)
             if terminal is None and ply >= max_plies:
                 terminal_reason = "max_plies"

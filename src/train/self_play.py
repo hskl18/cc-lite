@@ -17,14 +17,9 @@ from xiangqi.encoding import MoveCodec
 
 
 def _game_outcome(board: Board, max_plies_reached: bool) -> dict[str, float]:
-    if board.king_square(RED) is None:
-        return {RED: -1.0, BLACK: 1.0}
-    if board.king_square(BLACK) is None:
-        return {RED: 1.0, BLACK: -1.0}
-    legal = board.legal_moves()
-    if not legal:
-        loser = board.turn
-        return {loser: -1.0, (BLACK if loser == RED else RED): 1.0}
+    adjudication = board.adjudication()
+    if adjudication is not None:
+        return {RED: adjudication.result_for(RED), BLACK: adjudication.result_for(BLACK)}
     if max_plies_reached:
         return {RED: 0.0, BLACK: 0.0}
     return {RED: 0.0, BLACK: 0.0}
@@ -71,7 +66,7 @@ def generate_self_play(
                 )
             )
             board.push(move)
-            if board.king_square(RED) is None or board.king_square(BLACK) is None:
+            if board.adjudication() is not None:
                 break
         outcome = _game_outcome(board, len(trajectory) >= max_plies)
         red_scores.append(outcome[RED])

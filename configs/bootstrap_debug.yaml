@@ -1,0 +1,13 @@
+seed: 7
+device: cpu
+model:
+  preset: tiny
+  channels: 16
+  blocks: 1
+training:
+  batch_size: 4
+  epochs: 1
+  lr: 0.001
+  precision: fp32
+bootstrap:
+  max_records: 32

@@ -4,7 +4,7 @@ from data.replay import ReplaySample
 from model.network import ModelConfig, PolicyValueNet
 from train.loop import train_samples
 from train.self_play import _game_outcome
-from xiangqi.board import BLACK, RED, Board
+from xiangqi.board import BLACK, RED, Board, Move
 from xiangqi.encoding import MoveCodec
 
 
@@ -34,3 +34,11 @@ def test_cutoff_does_not_turn_material_advantage_into_self_play_win():
     assert board.legal_moves()
     assert board.material_score(RED) == 20
     assert _game_outcome(board, max_plies_reached=True) == {RED: 0.0, BLACK: 0.0}
+
+
+def test_rules_profile_draw_stays_a_draw_in_self_play_targets():
+    board = Board.from_fen("r3k4/9/9/9/9/4P4/9/9/9/R3K4 r")
+    for move_text in ["a9b9", "a0b0", "b9a9", "b0a0"] * 2:
+        board.push(Move.from_uci(move_text))
+
+    assert _game_outcome(board, max_plies_reached=False) == {RED: 0.0, BLACK: 0.0}
