@@ -25,19 +25,20 @@ def main() -> None:
     run([sys.executable, "-m", "cc_lite", "--version"])
     run([sys.executable, "-m", "ruff", "check", "."])
     run([sys.executable, "-m", "pytest"])
-    for opponent in ("random", "material"):
-        evidence_dir = ROOT / "evidence" / "debug-v1" / opponent
-        if evidence_dir.is_dir():
-            run(
-                [
-                    sys.executable,
-                    "-m",
-                    "eval.evidence",
-                    "validate",
-                    "--run-dir",
-                    str(evidence_dir),
-                ]
-            )
+    for bundle in ("debug-v1", "baseline-v1"):
+        for opponent in ("random", "material"):
+            evidence_dir = ROOT / "evidence" / bundle / opponent
+            if evidence_dir.is_dir():
+                run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "eval.evidence",
+                        "validate",
+                        "--run-dir",
+                        str(evidence_dir),
+                    ]
+                )
     with tempfile.TemporaryDirectory(prefix="cc-lite-dist-") as output_dir:
         run([sys.executable, "-m", "build", "--outdir", output_dir])
         artifacts = sorted(str(path) for path in Path(output_dir).iterdir())

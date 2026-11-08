@@ -76,7 +76,8 @@ Exit criterion:
 
 ## Stage 4: Rules And Evaluation Hardening
 
-Status: planned.
+Status: started. v0.2.0 adds repetition and perpetual-check adjudication, a mirrored opening suite, and paired-color
+bootstrap intervals; long-capture adjudication and a rating ladder are still planned.
 
 - Repetition, long-check, and long-capture adjudication.
 - Stronger FEN/engine protocol compatibility tests.
