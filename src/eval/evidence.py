@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import platform
 import subprocess
 from collections.abc import Sequence
@@ -58,11 +59,13 @@ def summarize_game_records(records: Sequence[dict[str, Any]]) -> dict[str, Any]:
         for record in records
         if record.get("avg_nodes_per_second") is not None
     ]
+    # math.fsum is correctly rounded on every Python version; builtin sum() over floats changed
+    # in 3.12, so a summary written on 3.12 failed reconstruction on 3.11.
     summary = {
         "games": len(records),
         "avg_plies": sum(plies) / len(plies) if plies else 0.0,
         "avg_nodes_per_second": (
-            sum(nodes_per_second) / len(nodes_per_second) if nodes_per_second else 0.0
+            math.fsum(nodes_per_second) / len(nodes_per_second) if nodes_per_second else 0.0
         ),
         "terminal": {
             "games": len(terminal_scores),
@@ -76,7 +79,7 @@ def summarize_game_records(records: Sequence[dict[str, Any]]) -> dict[str, Any]:
             "material_equal": sum(score == 0 for score in truncation_scores),
             "material_behind": sum(score < 0 for score in truncation_scores),
             "material_score_mean": (
-                sum(truncation_scores) / len(truncation_scores) if truncation_scores else 0.0
+                math.fsum(truncation_scores) / len(truncation_scores) if truncation_scores else 0.0
             ),
         },
     }
