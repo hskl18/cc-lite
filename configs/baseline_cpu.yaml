@@ -1,0 +1,8 @@
+# Seeded CPU evaluation of the committed debug checkpoint against the random and material baselines.
+# The model architecture comes from the checkpoint, so only the evaluation settings live here.
+seed: 1
+device: cpu
+eval:
+  games: 20
+  simulations: 50
+  max_plies: 400
