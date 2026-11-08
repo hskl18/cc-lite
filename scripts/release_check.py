@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,8 +19,11 @@ def run(command: list[str]) -> None:
 
 def main() -> None:
     metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    if metadata["project"]["version"] != "0.2.0":
-        raise SystemExit("pyproject.toml must declare version 0.2.0")
+    version = metadata["project"]["version"]
+    # Whole token, so v0.3.0rc1, v0.3.0+local or v0.3.0.1 in the README does not pass for 0.3.0.
+    readme_version = rf"(?<![\w.])v{re.escape(version)}(?![\w+-]|\.\w)"
+    if not re.search(readme_version, (ROOT / "README.md").read_text(encoding="utf-8")):
+        raise SystemExit(f"README.md must name the release version v{version}")
     suite = load_opening_suite(ROOT / "configs" / "openings" / "paired-v1.json")
     print(f"opening suite ok: {suite.suite_id} v{suite.version} {suite.sha256}")
     run([sys.executable, "-m", "cc_lite", "--version"])
