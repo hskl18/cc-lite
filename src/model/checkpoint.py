@@ -30,7 +30,7 @@ def save_checkpoint(
 
 
 def load_checkpoint(path: str | Path, map_location: str | torch.device = "cpu") -> tuple[PolicyValueNet, dict[str, Any]]:
-    payload = torch.load(path, map_location=map_location, weights_only=False)
+    payload = torch.load(path, map_location=map_location, weights_only=True)
     config = ModelConfig(**payload["model_config"])
     model = PolicyValueNet(config)
     model.load_state_dict(payload["model_state"])
