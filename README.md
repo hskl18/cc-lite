@@ -1,51 +1,66 @@
 # cc-lite
 
-`cc-lite` is a small but serious AlphaZero-style research baseline for Chinese Chess / Xiangqi.
-It is designed to run on a normal MacBook CPU/MPS setup or one modest consumer NVIDIA GPU.
+[![tests](https://github.com/hskl18/cc-lite/actions/workflows/tests.yml/badge.svg)](https://github.com/hskl18/cc-lite/actions/workflows/tests.yml)
 
-Version 0.2.0 is a rules-pinned, reproducible Xiangqi research workbench with validated record ingestion, bounded supervised bootstrap experiments, paired opening evaluation, and statistical reporting.
-It is not a DeepMind-scale reproduction and it does not claim engine strength.
+`cc-lite` is a compact AlphaZero-style research workbench for Chinese Chess (Xiangqi): rules, a PyTorch policy-value network, PUCT MCTS, self-play, training, and an evaluation harness.
+It exists because small game-playing experiments are easy to over-read, so every reported result comes from raw games that a validator replays move by move.
 
-## Project Status
+**Status: research baseline, v0.2.0.**
+There is no trained model of useful strength in this repository, and it makes no engine-strength or Elo claim.
 
-`cc-lite` is a research baseline, not a current industry-strength Xiangqi engine.
-For competitive analysis strength, use established engines such as Pikafish:
+## Headline result
 
-- Pikafish: <https://github.com/official-pikafish/Pikafish>
-- Px0: <https://github.com/official-pikafish/px0>
-- Fairy-Stockfish: <https://fairy-stockfish.github.io/>
+The committed debug checkpoint with 50-simulation MCTS, 20 seeded games against each scripted opponent, colors alternating, 400-ply cap, measured on an Apple M3 Pro CPU on 2026-11-08:
 
-The intended path is practical: supervised data or Pikafish distillation first, then AlphaZero-lite self-play.
-The roadmap toward a stronger benchmark-oriented system is documented in [`docs/industry-roadmap.md`](docs/industry-roadmap.md).
+| Opponent | Wins | Draws | Losses | Capped at 400 plies |
+| --- | ---: | ---: | ---: | ---: |
+| Uniform random mover | 11 | 0 | 1 | 8 |
+| One-ply greedy material mover | 0 | 2 | 15 | 3 |
 
-## Evidence Status
+The agent was behind on material in all 11 capped games, so a win rate over finished games alone would overstate it.
+Eleven of the 12 finished games against the random mover ended with the random side out of legal moves, but the agent did not win a game against a mover that simply captures the most material.
+The checkpoint was trained on one 8-ply self-play game, so this is a floor for later checkpoints to beat, not a trained-model result.
 
-No engine-strength result is currently claimed.
-The earlier hand-recorded debug table was removed because it had no committed raw games, checkpoint hash, exact command manifest, or engine binary provenance.
-Its capped games were also material-adjudicated and therefore were not terminal wins and losses.
-
-The committed [`evidence/debug-v1`](evidence/debug-v1) bundle is a pipeline smoke artifact only.
-It records every move, seed, color, start and final FEN, termination reason, config and checkpoint hashes, exact command arguments, source commit, environment, and raw-derived summary.
-The 6.8 MB debug checkpoint is versioned with the bundle so a fresh clone can verify the exact bytes used by both matches.
-Terminal W/D/L is kept separate from games truncated at `max_plies`.
-Material state at a cutoff is diagnostic metadata and never becomes a terminal result or a self-play win label.
-
-Regenerate the same evidence structure with:
+Every count above is rebuilt from the raw games in [`evidence/baseline-v1`](evidence/baseline-v1) by:
 
 ```bash
-./scripts/generate_debug_evidence.sh
+python -m eval.evidence validate --run-dir evidence/baseline-v1/random
+python -m eval.evidence validate --run-dir evidence/baseline-v1/material
 ```
 
-Validate each bundle independently from its raw `games.jsonl`:
+## Run it
 
 ```bash
-python -m eval.evidence validate --run-dir evidence/debug-v1/random
-python -m eval.evidence validate --run-dir evidence/debug-v1/material
+python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]" && ./scripts/generate_baseline_evidence.sh
 ```
 
-This two-game-per-opponent debug protocol is intentionally too small for a strength inference.
-Version 0.2.0 supplies the protocol and tooling needed for a stronger result, but no qualifying paired multi-seed result is committed yet.
-Any future publishable claim must still pass every evidence gate documented in [`docs/evaluation-protocol.md`](docs/evaluation-protocol.md).
+The script replays all 40 baseline games on CPU and validates both bundles; it took about 11 minutes on an Apple M3 Pro.
+`pytest` runs the full test suite in under half a minute.
+
+## Non-goals
+
+- A strong engine: use [Pikafish](https://github.com/official-pikafish/Pikafish), [Px0](https://github.com/official-pikafish/px0), or [Fairy-Stockfish](https://fairy-stockfish.github.io/) for analysis.
+- Strength or Elo claims from the committed debug checkpoint, from capped games, or from any bundle that fails `python -m eval.evidence validate`.
+- Tournament-rule compliance: results follow the narrower [CC-Lite Research Adjudication Profile 1](docs/rules-profile.md).
+- Large-scale training: the configs target one laptop or one consumer GPU.
+
+The practical path to strength is supervised data or Pikafish distillation first, then AlphaZero-lite self-play, as laid out in [`docs/industry-roadmap.md`](docs/industry-roadmap.md).
+The hard parts, the decisions behind them, and the failures that shaped them are in [DESIGN.md](DESIGN.md).
+
+## Evidence
+
+Each bundle holds every move, seed, color, start and final FEN, termination reason, the config and checkpoint hashes, the exact command, the source commit, and the environment.
+Terminal wins, draws, and losses are kept apart from games truncated at `max_plies`; material at a cutoff is diagnostic metadata and never becomes a result or a self-play label.
+CI validates every committed bundle on each push.
+
+- [`evidence/baseline-v1`](evidence/baseline-v1): the headline result above, regenerated by `./scripts/generate_baseline_evidence.sh` with [`configs/baseline_cpu.yaml`](configs/baseline_cpu.yaml).
+  A rerun of the first two games on the same machine reproduced the recorded moves exactly; other hardware or library versions can break floating-point ties differently, so the committed games stay the source of truth.
+- [`evidence/debug-v1`](evidence/debug-v1): a two-game-per-opponent pipeline smoke artifact with a 20-ply cap, regenerated by `./scripts/generate_debug_evidence.sh`.
+  All four games hit the cap, so it supports no result.
+  It also versions the 6.8 MB debug checkpoint that both bundles evaluate, so a fresh clone can verify the exact bytes.
+
+No checkpoint-versus-checkpoint comparison is committed yet.
+The paired-opening protocol for one is ready, and any future comparison must pass every gate in [`docs/evaluation-protocol.md`](docs/evaluation-protocol.md).
 
 ## Architecture
 
@@ -344,6 +359,7 @@ The test suite covers the pinned rules profile, randomized legal-game reversibil
 - Pure random-initialized self-play remains a research baseline, not the practical strength path.
 - The paired opening suite is small and designed for reproducible local comparison, not comprehensive opening coverage.
 - The committed debug evidence has two games per opponent and supports no strength conclusion.
+- The baseline evidence starts every game from the standard position, uses one checkpoint and one simulation budget, and comes from 20 games per opponent; it is a floor, not a strength estimate.
 - Throughput values are environment-specific diagnostics and are not gated or presented as stable benchmarks.
 
 ## Next Research Steps

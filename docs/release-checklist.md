@@ -19,7 +19,7 @@ This checklist prepares a release candidate without creating a Git tag or GitHub
 ## Evaluation evidence
 
 - Validate every committed evaluation bundle from its raw games with `python -m eval.evidence validate`.
-- Confirm all reported comparisons use the pinned opening suite, mirrored positions, paired colors, and declared seeds.
+- Confirm all reported checkpoint-versus-checkpoint comparisons use the pinned opening suite, mirrored positions, paired colors, and declared seeds.
 - Confirm confidence intervals and Elo estimates regenerate from raw terminal games.
 - Confirm truncated games remain separate and never count as wins, draws, or losses.
 - Confirm the sequential stopping decision is recorded and cannot use truncated games as favorable evidence.
