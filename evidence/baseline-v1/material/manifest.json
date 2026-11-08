@@ -1,0 +1,39 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "eval.evaluate",
+    "--config",
+    "configs/baseline_cpu.yaml",
+    "--checkpoint",
+    "evidence/debug-v1/checkpoint/selfplay.pt",
+    "--opponent",
+    "material",
+    "--output-dir",
+    "evidence/baseline-v1/material"
+  ],
+  "artifacts": {
+    "games.jsonl": "d0d97b1a4026d8300c11e49850bcf562abf9ff798c7c323f7aaf36d0c5cd3bf0",
+    "summary.json": "7ee5af8624618a312bfe946c8cc7c7decab1b8c8f492554efdd43d1ec7b3f5e5"
+  },
+  "checkpoint": {
+    "path": "evidence/debug-v1/checkpoint/selfplay.pt",
+    "sha256": "052688cb06d2bfb601cb18d1bb17c7b21df53c2269345333a1740a457422138b"
+  },
+  "config": {
+    "path": "configs/baseline_cpu.yaml",
+    "sha256": "aaa1f0858e643613c0f7c5ddc06eb40747e5e4012d64e15caef8f587e457781f"
+  },
+  "environment": {
+    "device": "cpu",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "python": "3.12.16",
+    "pytorch": "2.15.0"
+  },
+  "schema_version": 1,
+  "seed": 1,
+  "source": {
+    "dirty": false,
+    "git_commit": "221690bc07a588808cad1695a5bebc24331df523"
+  }
+}
