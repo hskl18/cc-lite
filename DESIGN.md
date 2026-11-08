@@ -55,6 +55,13 @@ The manifest records the checkpoint and config SHA-256 hashes, the exact command
 `python -m eval.evidence validate` replays every move from the starting FEN, checks the final FEN and terminal reason, recomputes the material diagnostics, rebuilds the summary from the raw rows, and compares every hash.
 Any mismatch fails validation, and CI validates every committed bundle on every push.
 
+### Failure found and fixed: a summary that validated on only one Python version
+
+The 20-game `baseline-v1/random` bundle validated on Python 3.12 and failed CI on 3.11.
+Python 3.12 changed the builtin `sum()` over floats to compensated summation, so the mean of 20 nodes-per-second values differed in its last bit between versions, and the validator compares summaries exactly.
+PR #6 switched the float means to `math.fsum`, which is correctly rounded on every version and reproduces every committed summary bit for bit.
+CI validates every bundle on both 3.11 and 3.12, which is the check that caught it.
+
 ## Paired evaluation and stopping
 
 Checkpoint-versus-checkpoint comparisons use a pinned suite of mirrored openings.
