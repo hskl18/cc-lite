@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import threading
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -117,6 +118,13 @@ def engine_move_to_cc(text: str, rank_base: int = 0) -> str:
     return f"{from_file}{9 - ranks[0]}{to_file}{9 - ranks[1]}"
 
 
+def cc_move_to_engine(text: str, rank_base: int = 0) -> str:
+    """The inverse of engine_move_to_cc: cc-lite ranks 0-9 top to bottom to engine ranks from Red's side."""
+
+    move = Move.from_uci(text).uci()
+    return f"{move[0]}{9 - int(move[1]) + rank_base}{move[2]}{9 - int(move[3]) + rank_base}"
+
+
 class UcciEngine:
     """Minimal line-oriented UCCI/UCI engine adapter.
 
@@ -202,9 +210,12 @@ class UcciEngine:
         self.send("isready")
         self.read_until(("readyok",))
 
-    def best_move(self, fen: str, depth: int) -> EngineResult:
+    def best_move(self, fen: str, depth: int, moves: Sequence[str] = ()) -> EngineResult:
+        """Search `fen` after `moves` (cc-lite notation), so the engine sees repetitions and perpetual checks."""
+
         engine_fen = to_engine_fen(fen)
-        self.send(f"position fen {engine_fen}")
+        played = " ".join(cc_move_to_engine(move, self.rank_base) for move in moves)
+        self.send(f"position fen {engine_fen} moves {played}" if played else f"position fen {engine_fen}")
         self.send(f"go depth {depth}")
         return parse_bestmove_output(self.read_until(("bestmove",)), self.rank_base)
 

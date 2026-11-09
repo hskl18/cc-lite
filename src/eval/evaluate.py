@@ -61,6 +61,7 @@ def evaluate_checkpoint(
             "flavor": engine_flavor,
             "depth": engine_depth,
             "protocol": engine_init_command,
+            "sees_game_history": True,
         }
         engine = UcciEngine(
             engine_command,
@@ -95,7 +96,8 @@ def evaluate_checkpoint(
                 elif opponent == "material":
                     move = material_move(board)
                 elif opponent == "engine" and engine is not None:
-                    result = engine.best_move(board.to_fen(), engine_depth)
+                    # The whole game, not just the position, so the engine can avoid repetitions and perpetual checks.
+                    result = engine.best_move(START_FEN, engine_depth, moves)
                     move = result.move
                     if move not in set(board.legal_moves()):
                         raise ValueError(f"Engine returned illegal move {move.uci()} for {board.to_fen()}")

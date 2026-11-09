@@ -1,6 +1,7 @@
 import math
 
 from eval.engine import (
+    cc_move_to_engine,
     command_argv,
     engine_move_to_cc,
     parse_bestmove_output,
@@ -63,3 +64,11 @@ def test_tanh_mapping_keeps_large_scores_apart_and_unknown_mappings_fail():
     except ValueError:
         return
     raise AssertionError("unknown mappings must be rejected")
+
+
+def test_cc_move_to_engine_inverts_engine_move_to_cc():
+    assert cc_move_to_engine("c3c4") == "c6c5"
+    assert cc_move_to_engine("h0g2", rank_base=1) == "h10g8"
+    for move in ("a0a9", "h9g7", "e3e4", "i6i5"):
+        for rank_base in (0, 1):
+            assert engine_move_to_cc(cc_move_to_engine(move, rank_base), rank_base) == move
