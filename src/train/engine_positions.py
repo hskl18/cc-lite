@@ -15,9 +15,8 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import NamedTuple
 
-from eval.engine import ENGINE_FLAVORS, UcciEngine
+from eval.engine import ENGINE_FLAVORS, UcciEngine, engine_provenance
 from eval.openings import load_opening_suite, mirror_fen
-from train.distill_engine import _engine_provenance
 from train.experiment import sha256_file
 from xiangqi.board import Board
 
@@ -30,12 +29,15 @@ class GameSettings(NamedTuple):
     random_move_rate: float
     max_plies: int
     seed: int
+    eval_file: str | None = None
 
 
 def play_games(settings: GameSettings, game_ids: list[int]) -> tuple[list[str], int]:
     """Return the FEN before every move of each game, and how many engine moves were illegal here."""
 
-    engine = UcciEngine(settings.engine, timeout=settings.timeout, flavor=settings.flavor)
+    engine = UcciEngine(
+        settings.engine, timeout=settings.timeout, flavor=settings.flavor, eval_file=settings.eval_file
+    )
     fens: list[str] = []
     illegal_engine_moves = 0
     try:
@@ -79,6 +81,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate positions from seeded engine games for distillation.")
     parser.add_argument("--engine", required=True, help="Engine command, e.g. './fairy-stockfish'")
     parser.add_argument("--engine-flavor", choices=sorted(ENGINE_FLAVORS), default="pikafish")
+    parser.add_argument("--engine-eval-file", help="Network file to pin, for engines such as Pikafish")
     parser.add_argument("--games", type=int, required=True)
     parser.add_argument("--depth", type=int, default=2, help="Search depth for the engine's own moves")
     parser.add_argument("--random-move-rate", type=float, default=0.15)
@@ -89,6 +92,10 @@ def main() -> None:
     parser.add_argument(
         "--exclude-opening-suite",
         help="Leave out this suite's positions and their mirrors, so evaluation openings stay unseen",
+    )
+    parser.add_argument(
+        "--exclude-positions",
+        help="JSONL of {'fen': ...} rows to leave out, such as a training set, to build a held-out set",
     )
     parser.add_argument("--output", required=True)
     parser.add_argument("--manifest", help="Defaults to OUTPUT.manifest.json")
@@ -109,11 +116,31 @@ def main() -> None:
         suite_path = Path(args.exclude_opening_suite).resolve()
         suite = load_opening_suite(suite_path)
         for position in suite.positions:
-            excluded.update({position.fen, mirror_fen(position.fen)})
+            excluded.update({Board.from_fen(position.fen).to_fen(), mirror_fen(position.fen)})
         suite_record = {"path": str(suite_path), "sha256": sha256_file(suite_path), "excluded_fens": len(excluded)}
 
+    excluded_positions_record = None
+    if args.exclude_positions:
+        positions_path = Path(args.exclude_positions).resolve()
+        before = len(excluded)
+        with positions_path.open(encoding="utf-8") as handle:
+            # Canonical FENs, so a differently written copy of a training position is still excluded.
+            excluded.update(Board.from_fen(json.loads(line)["fen"]).to_fen() for line in handle if line.strip())
+        excluded_positions_record = {
+            "path": str(positions_path),
+            "sha256": sha256_file(positions_path),
+            "excluded_fens": len(excluded) - before,
+        }
+
     settings = GameSettings(
-        args.engine, args.timeout, args.engine_flavor, args.depth, args.random_move_rate, args.max_plies, args.seed
+        args.engine,
+        args.timeout,
+        args.engine_flavor,
+        args.depth,
+        args.random_move_rate,
+        args.max_plies,
+        args.seed,
+        args.engine_eval_file,
     )
     game_ids = list(range(args.games))
     chunk_size = max(1, -(-len(game_ids) // (args.workers * 8)))
@@ -131,7 +158,11 @@ def main() -> None:
     manifest = {
         "schema_version": 1,
         "kind": "engine_game_positions",
-        "engine": {**_engine_provenance(args.engine), "flavor": args.engine_flavor, "depth": args.depth},
+        "engine": {
+            **engine_provenance(args.engine, args.engine_eval_file),
+            "flavor": args.engine_flavor,
+            "depth": args.depth,
+        },
         "games": args.games,
         "seed": args.seed,
         "random_move_rate": args.random_move_rate,
@@ -139,6 +170,7 @@ def main() -> None:
         "positions_seen": len(all_fens),
         "illegal_engine_moves": illegal_engine_moves,
         "excluded_opening_suite": suite_record,
+        "excluded_positions": excluded_positions_record,
         "positions": {"path": str(output_path), "sha256": sha256_file(output_path), "records": len(positions)},
         "argv": ["python", "-m", "train.engine_positions", *sys.argv[1:]],
     }

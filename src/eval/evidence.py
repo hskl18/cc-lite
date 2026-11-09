@@ -471,6 +471,40 @@ def _git_source() -> dict[str, Any]:
     return {"git_commit": commit, "dirty": status.returncode == 1}
 
 
+def _opponent_engine_errors(manifest: dict[str, Any], records: Sequence[dict[str, Any]]) -> list[str]:
+    """Engine games must name the engine; its binary is not distributed, so only the record is checked."""
+
+    uses_engine = any(record.get("opponent") == "engine" for record in records)
+    engine = manifest.get("opponent_engine")
+    if not uses_engine:
+        return ["opponent_engine provenance without engine games"] if engine is not None else []
+    if not isinstance(engine, dict):
+        return ["engine games require opponent_engine provenance"]
+    errors = []
+    command = engine.get("command")
+    if not isinstance(command, list) or not command or any(not isinstance(part, str) for part in command):
+        errors.append("opponent_engine command must be a non-empty list of strings")
+    executable = engine.get("executable")
+    if not isinstance(executable, dict) or not all(
+        isinstance(executable.get(field), str) and executable.get(field) for field in ("path", "sha256")
+    ):
+        errors.append("opponent_engine requires an executable path and sha256")
+    if engine.get("flavor") not in ("pikafish", "fairy"):
+        errors.append("opponent_engine flavor must be pikafish or fairy")
+    if engine.get("protocol") not in ("uci", "ucci"):
+        errors.append("opponent_engine protocol must be uci or ucci")
+    depth = engine.get("depth")
+    if not isinstance(depth, int) or isinstance(depth, bool) or depth <= 0:
+        errors.append("opponent_engine depth must be a positive integer")
+    eval_file = engine.get("eval_file")
+    if engine.get("flavor") == "pikafish" and not (
+        isinstance(eval_file, dict)
+        and all(isinstance(eval_file.get(field), str) and eval_file.get(field) for field in ("path", "sha256"))
+    ):
+        errors.append("a Pikafish opponent requires its pinned eval_file path and sha256")
+    return errors
+
+
 def write_evidence_bundle(
     run_dir: str | Path,
     *,
@@ -484,6 +518,7 @@ def write_evidence_bundle(
     opening_suite_path: str | Path | None = None,
     seeds: Sequence[int] | None = None,
     paired_protocol: dict[str, Any] | None = None,
+    opponent_engine: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     has_paired_records = any(_record_uses_paired_metadata(record) for record in records)
     preflight_errors = [] if records else ["evidence must contain at least one game"]
@@ -512,6 +547,8 @@ def write_evidence_bundle(
                 protocol=paired_protocol,
             )
         )
+    engine_manifest = {"opponent_engine": opponent_engine} if opponent_engine is not None else {}
+    preflight_errors.extend(_opponent_engine_errors(engine_manifest, records))
     if preflight_errors:
         raise ValueError("invalid evidence: " + "; ".join(preflight_errors))
 
@@ -564,6 +601,8 @@ def write_evidence_bundle(
         manifest["seeds"] = [int(value) for value in seeds]
     if paired_protocol is not None:
         manifest["paired_protocol"] = paired_protocol
+    if opponent_engine is not None:
+        manifest["opponent_engine"] = opponent_engine
     _write_json(destination / "manifest.json", manifest)
     return summary
 
@@ -607,6 +646,7 @@ def validate_evidence_bundle(run_dir: str | Path) -> dict[str, Any]:
     paired_manifest_fields = ("opponent_checkpoint", "opening_suite", "seeds", "paired_protocol")
     paired_manifest = any(field in manifest for field in paired_manifest_fields)
     errors.extend(_manifest_errors(manifest, paired=has_paired_records or paired_manifest))
+    errors.extend(_opponent_engine_errors(manifest, records))
     paired_protocol = manifest.get("paired_protocol")
     if has_paired_records and paired_protocol is None:
         errors.append("paired records require paired_protocol")

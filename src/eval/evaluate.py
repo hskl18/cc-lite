@@ -6,7 +6,7 @@ import sys
 
 from eval.adjudication import material_adjudication
 from eval.baselines import material_move, random_move
-from eval.engine import ENGINE_FLAVORS, UcciEngine
+from eval.engine import ENGINE_FLAVORS, UcciEngine, engine_provenance
 from eval.evidence import summarize_game_records, write_evidence_bundle
 from mcts.search import MCTS, SearchConfig, TorchEvaluator
 from model.checkpoint import load_checkpoint
@@ -34,18 +34,40 @@ def evaluate_checkpoint(
     engine_timeout: float = 10.0,
     engine_init_command: str = "uci",
     engine_flavor: str = "pikafish",
+    engine_eval_file: str | None = None,
+    sample_plies: int = 0,
 ) -> dict[str, object]:
+    if sample_plies < 0:
+        raise ValueError("sample_plies must not be negative")
+    if opponent == "engine" and sample_plies == 0 and games > 2:
+        raise ValueError(
+            "A greedy model against a fixed-depth engine replays one game per color; "
+            "set eval.sample_plies above 0 so each seed plays a different game"
+        )
+    if opponent == "engine" and engine_flavor == "pikafish" and engine_eval_file is None:
+        raise ValueError("Pikafish loads its network from a separate file; pass --engine-eval-file to pin it")
     device = choose_device(config.get("device", "auto"))
     model, _ = load_checkpoint(checkpoint, map_location=device)
     evaluator = TorchEvaluator(model, str(device))
     records: list[dict[str, object]] = []
     base_seed = int(config.get("seed", 1))
     engine = None
+    opponent_engine = None
     if opponent == "engine":
         if not engine_command:
             raise ValueError("--engine-command is required when --opponent engine")
+        opponent_engine = {
+            **engine_provenance(engine_command, engine_eval_file),
+            "flavor": engine_flavor,
+            "depth": engine_depth,
+            "protocol": engine_init_command,
+        }
         engine = UcciEngine(
-            engine_command, timeout=engine_timeout, init_command=engine_init_command, flavor=engine_flavor
+            engine_command,
+            timeout=engine_timeout,
+            init_command=engine_init_command,
+            flavor=engine_flavor,
+            eval_file=engine_eval_file,
         )
     try:
         for game in range(games):
@@ -53,13 +75,20 @@ def evaluate_checkpoint(
             set_seed(game_seed)
             model_color = RED if game % 2 == 0 else BLACK
             board = Board.from_fen(START_FEN)
+            if engine is not None:
+                engine.new_game()
             ply = 0
+            model_moves = 0
             moves: list[str] = []
             game_nodes: list[float] = []
             while ply < max_plies and board.adjudication() is None:
                 if board.turn == model_color:
-                    search = MCTS(evaluator, SearchConfig(simulations=simulations, temperature=0.0))
+                    # The model's first sample_plies moves are drawn from visit counts with this game's seed,
+                    # counted per model move so that Black, which first moves at ply 1, is sampled too.
+                    temperature = 1.0 if model_moves < sample_plies else 0.0
+                    search = MCTS(evaluator, SearchConfig(simulations=simulations, temperature=temperature))
                     move, _ = search.run(board)
+                    model_moves += 1
                     game_nodes.append(search.last_nodes_per_second)
                 elif opponent == "random":
                     move = random_move(board)
@@ -110,7 +139,12 @@ def evaluate_checkpoint(
     finally:
         if engine is not None:
             engine.close()
-    return {"summary": summarize_game_records(records), "games": records, "device": str(device)}
+    return {
+        "summary": summarize_game_records(records),
+        "games": records,
+        "device": str(device),
+        "opponent_engine": opponent_engine,
+    }
 
 
 def main() -> None:
@@ -123,6 +157,7 @@ def main() -> None:
     parser.add_argument("--engine-timeout", type=float, default=10.0)
     parser.add_argument("--engine-init-command", choices=["uci", "ucci"], default="uci")
     parser.add_argument("--engine-flavor", choices=sorted(ENGINE_FLAVORS), default="pikafish")
+    parser.add_argument("--engine-eval-file", help="Network file to pin, required for Pikafish")
     parser.add_argument("--games", type=int)
     parser.add_argument("--simulations", type=int)
     parser.add_argument("--max-plies", type=int)
@@ -143,6 +178,8 @@ def main() -> None:
         engine_timeout=args.engine_timeout,
         engine_init_command=args.engine_init_command,
         engine_flavor=args.engine_flavor,
+        engine_eval_file=args.engine_eval_file,
+        sample_plies=int(eval_cfg.get("sample_plies", 0)),
     )
     write_evidence_bundle(
         args.output_dir,
@@ -152,6 +189,7 @@ def main() -> None:
         seed=int(config.get("seed", 1)),
         argv=["python", "-m", "eval.evaluate", *sys.argv[1:]],
         device=str(result["device"]),
+        opponent_engine=result.get("opponent_engine"),
     )
     print(json.dumps(result["summary"], indent=2, sort_keys=True))
 

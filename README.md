@@ -275,13 +275,14 @@ Evaluate against random or material-count baselines:
 ./scripts/evaluate_checkpoint.sh configs/macbook_tiny.yaml runs/macbook_tiny/checkpoints/latest.pt material
 ```
 
-Evaluate against a low-depth UCI/UCCI engine such as Pikafish:
+Evaluate against a low-depth UCI/UCCI engine such as Pikafish, pinning its separate network file so the evidence records exactly which one played:
 
 ```bash
 ./scripts/evaluate_engine.sh \
-  configs/macbook_tiny.yaml \
+  configs/engine_eval.yaml \
   runs/macbook_tiny/checkpoints/latest.pt \
   ./pikafish \
+  ./pikafish.nnue \
   4
 ```
 
@@ -290,10 +291,11 @@ Equivalent explicit command:
 ```bash
 export PYTHONPATH=src
 python -m eval.evaluate \
-  --config configs/macbook_tiny.yaml \
+  --config configs/engine_eval.yaml \
   --checkpoint runs/macbook_tiny/checkpoints/latest.pt \
   --opponent engine \
   --engine-command ./pikafish \
+  --engine-eval-file ./pikafish.nnue \
   --engine-depth 4 \
   --output-dir runs/macbook_tiny/evaluation-pikafish-depth-4
 ```
