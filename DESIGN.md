@@ -53,14 +53,14 @@ The hand-recorded table was deleted because it had no raw games, checkpoint hash
 Every evaluation writes `games.jsonl`, `summary.json`, and `manifest.json`.
 The manifest records the checkpoint and config SHA-256 hashes, the exact command, the seed, the source commit and dirty flag, and the runtime environment.
 `python -m eval.evidence validate` replays every move from the starting FEN, checks the final FEN and terminal reason, recomputes the material diagnostics, rebuilds the summary from the raw rows, and compares every hash.
-Any mismatch fails validation, and CI validates every committed bundle on every push.
+Any mismatch fails validation, and CI validates every committed evaluation bundle on every push.
 
 ### Failure found and fixed: a summary that validated on only one Python version
 
 The 20-game `baseline-v1/random` bundle validated on Python 3.12 and failed CI on 3.11.
 Python 3.12 changed the builtin `sum()` over floats to compensated summation, so the mean of 20 nodes-per-second values differed in its last bit between versions, and the validator compares summaries exactly.
 PR #6 switched the float means to `math.fsum`, which is correctly rounded on every version and reproduces every committed summary bit for bit.
-CI validates every bundle on both 3.11 and 3.12, which is the check that caught it.
+CI validates every evaluation bundle on both 3.11 and 3.12, which is the check that caught it.
 
 ## Paired evaluation and stopping
 
@@ -137,5 +137,5 @@ MCTS is now a generator that yields each board it needs evaluated, so `train.sel
 ## Known limits
 
 - The repetition rule does not classify long chases, so some tournament outcomes differ.
-- The best committed checkpoint was distilled from a depth-10 engine and has been compared only with scripted movers and the debug checkpoint, never with an engine.
+- `distill-v1` was distilled from a depth-10 engine and has been compared only with scripted movers and the debug checkpoint, never with an engine; `distill-v2` has not been evaluated yet.
 - Torch inference on different hardware or library versions can change floating-point ties, so a rerun elsewhere may choose different moves; the committed raw games remain the source of truth.

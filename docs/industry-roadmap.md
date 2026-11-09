@@ -39,7 +39,7 @@ Status: started.
 - Add optional UCI/UCCI engine benchmark command.
 - Evaluate checkpoints against low-depth Pikafish instead of only random/material baselines.
 - Save match metadata: engine command, depth, model checkpoint, config, seed, game count, result.
-- Keep engine binaries and generated labels outside git.
+- Keep engine binaries and generated labels outside git, except small fixed evaluation sets such as `evidence/heldout-v1`.
 
 Exit criterion:
 
@@ -62,7 +62,7 @@ Exit criterion:
 
 ## Stage 3: Search And Throughput
 
-Status: planned.
+Status: started. Batched network evaluation across lockstep games, multiprocess self-play workers (`train.self_play_loop`), a temperature schedule, and a check test that no longer generates every opponent move are in place; tree reuse, a position cache, and resignation are still planned.
 
 - Batched neural-network evaluation inside MCTS.
 - Multiprocess self-play workers.
