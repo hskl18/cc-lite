@@ -8,12 +8,24 @@ A fixed set of 24,728 labeled positions for comparing checkpoints with `python -
    Of the 33,749 positions, 24,728 remain after removing duplicates, the eight `paired-v1` opening positions, and all 1,713,216 distinct training positions of `distill-v1` and `distill-v2`.
    Record: [`positions.manifest.json`](positions.manifest.json).
    The exclusion file was `distill-v1`'s positions followed by `distill-v2`'s, and its SHA-256 in that manifest, `e7dcc776d2731659…`, is the digest of those two files concatenated.
-   `distill-v1`'s positions are attached to the v0.3.0 release; `distill-v2`'s are not published yet, so until they are, its part of the disjointness rests on this record.
+   `distill-v1`'s positions are attached to the v0.3.0 release and `distill-v2`'s to the v0.4.0 release, so that digest can be recomputed from them.
 2. Labels: every position was searched at depth 10, one thread, with the engine state cleared first; the best move is the policy target, the side-to-move score is kept as `score_cp`, and the value is that score divided by 1,000 and clipped.
    Record: [`labels.manifest.json`](labels.manifest.json).
 
 The engine is the Fairy-Stockfish build described in [`evidence/distill-v1`](../distill-v1).
 Both data files are committed xz-compressed; their decompressed SHA-256 digests are the ones in the manifests, whose home-directory paths were rewritten to `~/` before publication.
+
+## Results
+
+| Checkpoint | Top-1 agreement, illegal moves masked | Unmasked top move legal | Value sign agreement |
+| --- | ---: | ---: | ---: |
+| `distill-v1` | 25.8 percent | 92.0 percent | 93.2 percent |
+| `distill-v2` | 25.8 percent | 92.6 percent | 93.3 percent |
+
+The labels are Fairy-Stockfish's depth-10 best move and score.
+Sign agreement counts the 22,011 positions whose label is at least 0.1 from zero.
+The reports are in [`agreement/`](agreement), produced from a clean checkout of `070c0fb` with the committed data; they replay no games, unlike the game bundles, and hash the checkpoint, the labels, and the labels manifest.
+The two checkpoints agree with the engine equally often, and the games in [`evidence/distill-v2`](../distill-v2) separate them, so agreement on this set does not rank these two by playing strength.
 
 ## Use
 

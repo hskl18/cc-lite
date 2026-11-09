@@ -1,0 +1,39 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "eval.evaluate",
+    "--config",
+    "configs/baseline_cpu.yaml",
+    "--checkpoint",
+    "evidence/distill-v2/train/checkpoint.pt",
+    "--opponent",
+    "material",
+    "--output-dir",
+    "evidence/distill-v2/material"
+  ],
+  "artifacts": {
+    "games.jsonl": "93ab89aff8632538eff147f1ccfcaeb11239571931d9f6a1483ccfbd1c8925f5",
+    "summary.json": "a092ead089cb51d46e2f97027496243e0b2ff3e4c94f5af5948119bd6bc511c8"
+  },
+  "checkpoint": {
+    "path": "evidence/distill-v2/train/checkpoint.pt",
+    "sha256": "446e679d750578fcf32a85b9be05d295689a70d9aac8e076ba4f2e7bda63f4b4"
+  },
+  "config": {
+    "path": "configs/baseline_cpu.yaml",
+    "sha256": "aaa1f0858e643613c0f7c5ddc06eb40747e5e4012d64e15caef8f587e457781f"
+  },
+  "environment": {
+    "device": "cpu",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.11.0+cu128"
+  },
+  "schema_version": 1,
+  "seed": 1,
+  "source": {
+    "dirty": false,
+    "git_commit": "070c0fb1796a143d46eafbddeaecc923bb157a45"
+  }
+}
