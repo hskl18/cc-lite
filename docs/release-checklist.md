@@ -1,6 +1,7 @@
 # v0.2.0 release checklist
 
 This checklist prepares a release candidate without creating a Git tag or GitHub Release.
+It is kept as the record of the v0.2.0 release; later releases follow the same steps with their own version.
 
 ## Source and package
 
