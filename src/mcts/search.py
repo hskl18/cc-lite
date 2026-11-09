@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import time
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -61,6 +62,30 @@ class TorchEvaluator:
         return priors, float(value.item())
 
 
+class TorchBatchEvaluator(TorchEvaluator):
+    """Evaluates many boards in one forward pass, for searches that run in lockstep."""
+
+    @torch.no_grad()
+    def evaluate_many(self, boards: list[Board]) -> list[tuple[dict[Move, float], float]]:
+        encoded = torch.from_numpy(np.stack([encode_board(board) for board in boards])).to(self.device)
+        logits, values = self.model(encoded)
+        logits, values = logits.float().cpu(), values.float().cpu()
+        results: list[tuple[dict[Move, float], float]] = []
+        for row, board in enumerate(boards):
+            legal_moves = board.legal_moves()
+            if not legal_moves:
+                results.append(({}, -1.0))
+                continue
+            indices = torch.tensor([MoveCodec.encode(move) for move in legal_moves])
+            probs = torch.softmax(logits[row, indices], dim=0).numpy()
+            priors = {move: float(prob) for move, prob in zip(legal_moves, probs, strict=True)}
+            results.append((priors, float(values[row])))
+        return results
+
+
+Evaluation = tuple[dict[Move, float], float]
+
+
 class UniformEvaluator:
     def evaluate(self, board: Board) -> tuple[dict[Move, float], float]:
         legal_moves = board.legal_moves()
@@ -77,8 +102,24 @@ class MCTS:
         self.last_nodes_per_second = 0.0
 
     def run(self, board: Board) -> tuple[Move, dict[Move, float]]:
+        steps = self.search(board)
+        request = next(steps)
+        while True:
+            try:
+                request = steps.send(self.evaluator.evaluate(request))
+            except StopIteration as done:
+                return done.value
+
+    def search(self, board: Board) -> Generator[Board, Evaluation, tuple[Move, dict[Move, float]]]:
+        """One search that yields each board needing a network evaluation and receives (priors, value).
+
+        Evaluators return priors over exactly the legal moves, so expansion reuses them instead of
+        generating the moves again; a driver can batch the yielded boards of many searches.
+        """
+
         root = Node(prior=1.0)
-        self._expand(root, board)
+        priors, _ = yield board
+        self._expand(root, priors)
         if not root.children:
             raise ValueError("No legal moves available")
         self._add_root_noise(root)
@@ -91,7 +132,10 @@ class MCTS:
                 move, node = self._select_child(node)
                 scratch._push_legal(move)
                 search_path.append(node)
-            value = self._evaluate_terminal_or_expand(node, scratch)
+            value = self._terminal_value(scratch)
+            if value is None:
+                priors, value = yield scratch
+                self._expand(node, priors)
             self._backpropagate(search_path, value)
         elapsed = max(time.perf_counter() - started, 1e-9)
         self.last_nodes_per_second = self.config.simulations / elapsed
@@ -99,21 +143,17 @@ class MCTS:
         move = self._sample_move(policy, self.config.temperature)
         return move, policy
 
-    def _evaluate_terminal_or_expand(self, node: Node, board: Board) -> float:
-        adjudication = board.adjudication()
-        if adjudication is not None:
-            return adjudication.result_for(board.turn)
-        legal = board.legal_moves()
-        priors, value = self.evaluator.evaluate(board)
-        for move in legal:
-            node.children[move] = Node(prior=priors.get(move, 0.0))
-        return value
+    @staticmethod
+    def _terminal_value(board: Board) -> float | None:
+        """A rules-profile result from the side to move, or None while the game goes on."""
 
-    def _expand(self, node: Node, board: Board) -> float:
-        priors, value = self.evaluator.evaluate(board)
+        adjudication = board.adjudication()
+        return None if adjudication is None else adjudication.result_for(board.turn)
+
+    @staticmethod
+    def _expand(node: Node, priors: dict[Move, float]) -> None:
         for move, prior in priors.items():
             node.children[move] = Node(prior=prior)
-        return value
 
     def _select_child(self, node: Node) -> tuple[Move, Node]:
         total_visits = max(1, node.visit_count)

@@ -1,0 +1,22 @@
+# AlphaZero-lite generations from a distilled checkpoint on one GPU (RTX 5070 Ti) with 14 CPU workers.
+# Each worker plays its games in lockstep and sends one leaf per game to the GPU in a batch.
+seed: 7
+device: auto
+self_play:
+  games: 448
+  workers: 14
+  simulations: 100
+  max_plies: 200
+  temperature: 1.0
+  temperature_plies: 20
+  dirichlet_frac: 0.25
+loop:
+  generations: 4
+  replay_generations: 2
+  anchor_ratio: 1.0
+training:
+  batch_size: 512
+  epochs: 1
+  lr: 0.0003
+  precision: bf16
+  num_workers: 8

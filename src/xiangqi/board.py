@@ -13,6 +13,17 @@ START_FEN = "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR r"
 PIECE_KINDS = ("K", "A", "E", "H", "R", "C", "P")
 PIECE_VALUES = {"K": 0, "A": 20, "E": 20, "H": 45, "R": 90, "C": 50, "P": 10}
 REPETITION_COUNT = 3
+# Horse moves as (row step, column step, leg row, leg column), the leg relative to the horse.
+HORSE_SPECS = (
+    (-2, -1, -1, 0),
+    (-2, 1, -1, 0),
+    (2, -1, 1, 0),
+    (2, 1, 1, 0),
+    (-1, -2, 0, -1),
+    (1, -2, 0, -1),
+    (-1, 2, 0, 1),
+    (1, 2, 0, 1),
+)
 NO_PROGRESS_PLIES = 120
 
 
@@ -346,9 +357,68 @@ class Board:
         king = self.king_square(color)
         if king is None:
             return True
-        for move in self.pseudo_legal_moves(opposite(color)):
-            if move.to_sq == king:
+        return self._attacked_by(king, opposite(color))
+
+    def _attacked_by(self, square: int, attacker: str) -> bool:
+        """Whether any `attacker` pseudo-legal move lands on `square`, found by looking out from it.
+
+        Each branch mirrors one piece's move generator, so the answer equals scanning every
+        attacker move, without generating them (legal-move filtering calls this for each move).
+        """
+
+        squares = self.squares
+        row, col = sq_to_rc(square)
+        red = attacker == RED
+        king, advisor, elephant, horse, rook, cannon, pawn = "KAEHRCP" if red else "kaehrcp"
+        # Rooks take the first piece on a line, cannons the second; a king flies along its file toward the other king.
+        king_flight = 1 if red else -1
+        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nr, nc = row + dr, col + dc
+            screened = False
+            while 0 <= nr < BOARD_ROWS and 0 <= nc < BOARD_COLS:
+                piece = squares[nr * BOARD_COLS + nc]
+                if piece is not None:
+                    if screened:
+                        if piece == cannon:
+                            return True
+                        break
+                    if piece == rook or (piece == king and dc == 0 and dr == king_flight):
+                        return True
+                    screened = True
+                nr += dr
+                nc += dc
+        for dr, dc, lr, lc in HORSE_SPECS:
+            hr, hc = row - dr, col - dc
+            if (
+                0 <= hr < BOARD_ROWS
+                and 0 <= hc < BOARD_COLS
+                and squares[hr * BOARD_COLS + hc] == horse
+                and squares[(hr + lr) * BOARD_COLS + hc + lc] is None
+            ):
                 return True
+        forward = -1 if red else 1
+        if 0 <= row - forward < BOARD_ROWS and squares[(row - forward) * BOARD_COLS + col] == pawn:
+            return True
+        if row <= 4 if red else row >= 5:
+            for nc in (col - 1, col + 1):
+                if 0 <= nc < BOARD_COLS and squares[row * BOARD_COLS + nc] == pawn:
+                    return True
+        if self._palace_contains(attacker, row, col):
+            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                if in_bounds(row + dr, col + dc) and squares[rc_to_sq(row + dr, col + dc)] == king:
+                    return True
+            for dr, dc in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+                if in_bounds(row + dr, col + dc) and squares[rc_to_sq(row + dr, col + dc)] == advisor:
+                    return True
+        if row >= 5 if red else row <= 4:
+            for dr, dc in ((2, 2), (2, -2), (-2, 2), (-2, -2)):
+                er, ec = row - dr, col - dc
+                if (
+                    in_bounds(er, ec)
+                    and squares[rc_to_sq(er, ec)] == elephant
+                    and squares[rc_to_sq(er + dr // 2, ec + dc // 2)] is None
+                ):
+                    return True
         return False
 
     def king_square(self, color: str) -> int | None:
@@ -439,17 +509,7 @@ class Board:
     def _horse_moves(self, square: int, piece: str) -> Iterable[Move]:
         color = piece_color(piece)
         row, col = sq_to_rc(square)
-        specs = (
-            (-2, -1, -1, 0),
-            (-2, 1, -1, 0),
-            (2, -1, 1, 0),
-            (2, 1, 1, 0),
-            (-1, -2, 0, -1),
-            (1, -2, 0, -1),
-            (-1, 2, 0, 1),
-            (1, 2, 0, 1),
-        )
-        for dr, dc, lr, lc in specs:
+        for dr, dc, lr, lc in HORSE_SPECS:
             nr, nc = row + dr, col + dc
             leg_r, leg_c = row + lr, col + lc
             if in_bounds(nr, nc) and self.squares[rc_to_sq(leg_r, leg_c)] is None:

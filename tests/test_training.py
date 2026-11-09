@@ -42,3 +42,18 @@ def test_rules_profile_draw_stays_a_draw_in_self_play_targets():
         board.push(Move.from_uci(move_text))
 
     assert _game_outcome(board, max_plies_reached=False) == {RED: 0.0, BLACK: 0.0}
+
+
+def test_batched_self_play_is_seeded_and_labels_every_move():
+    from train.self_play import generate_self_play_batched
+
+    model = PolicyValueNet(ModelConfig(channels=8, blocks=1))
+    kwargs = dict(device=torch.device("cpu"), games=3, simulations=4, max_plies=6, seed=5, temperature_plies=2)
+    first, metrics = generate_self_play_batched(model, **kwargs)
+    again, _ = generate_self_play_batched(model, **kwargs)
+    assert [(s.fen, s.policy, s.value) for s in first] == [(s.fen, s.policy, s.value) for s in again]
+    assert metrics["positions"] == len(first) == 18
+    assert metrics["capped_games"] == 3
+    # Capped games are draws, never material-based wins.
+    assert {sample.value for sample in first} == {0.0}
+    assert all(abs(sum(sample.policy.values()) - 1.0) < 1e-6 for sample in first)

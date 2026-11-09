@@ -124,6 +124,16 @@ The two networks differ in size and training data, so this compares checkpoints,
 The training metrics are averaged over the training data, not measured on held-out positions.
 No result here says how the network fares against an engine.
 
+## Search throughput for self-play
+
+Self-play is search-bound, and profiling one batched worker on the RTX 5070 Ti machine put 300 of 328 seconds inside `Board.is_in_check`.
+It generated every opponent move to test one king square, and legal-move filtering called it once per candidate move.
+`is_in_check` now looks outward from the king, with one branch per piece that mirrors that piece's move generator, including the flying-general direction.
+On all 848,307 `distill-v1` positions, check status for both colors and every legal-move list (25.2 million moves) matched the original definition with no mismatch; the original stays in the tests as the reference.
+The first two `baseline-v1` games replay move for move on the machine that recorded them and run three times faster end to end.
+
+MCTS is now a generator that yields each board it needs evaluated, so `train.self_play` can run many games in lockstep and send one leaf per game to the GPU in a single batch, and `train.self_play_loop` runs generations across worker processes, each anchored to a sample of engine labels.
+
 ## Known limits
 
 - The repetition rule does not classify long chases, so some tournament outcomes differ.
