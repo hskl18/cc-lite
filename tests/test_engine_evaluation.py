@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 import eval.evaluate as evaluate_module
-from eval.engine import UcciEngine
+from eval.engine import UcciEngine, cc_move_to_engine
 from eval.evaluate import evaluate_checkpoint
 from eval.evidence import validate_evidence_bundle, write_evidence_bundle
 from model.checkpoint import save_checkpoint
@@ -19,8 +19,8 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 LEGAL_ENGINE = f"""
 import sys
 sys.path.insert(0, {str(SRC)!r})
-from xiangqi.board import Board
-fen = None
+from xiangqi.board import Board, Move
+board = None
 for line in sys.stdin:
     command = line.strip()
     if command == "uci":
@@ -28,10 +28,13 @@ for line in sys.stdin:
     elif command == "isready":
         print("readyok", flush=True)
     elif command.startswith("position fen "):
-        placement, turn = command[len("position fen "):].split()[:2]
-        fen = placement.translate(str.maketrans("NnBb", "HhEe")) + (" r" if turn == "w" else " b")
+        position, _, played = command[len("position fen "):].partition(" moves ")
+        placement, turn = position.split()[:2]
+        board = Board.from_fen(placement.translate(str.maketrans("NnBb", "HhEe")) + (" r" if turn == "w" else " b"))
+        for move in played.split():
+            board.push(Move.from_uci(move[0] + str(9 - int(move[1])) + move[2] + str(9 - int(move[3]))))
     elif command.startswith("go"):
-        move = sorted(Board.from_fen(fen).legal_moves(), key=lambda m: m.uci())[0].uci()
+        move = sorted(board.legal_moves(), key=lambda m: m.uci())[0].uci()
         print("info depth 1 score cp 0")
         print("bestmove " + move[0] + str(9 - int(move[1])) + move[2] + str(9 - int(move[3])), flush=True)
     elif command == "quit":
@@ -97,6 +100,30 @@ def test_sampled_moves_are_counted_per_model_move_for_both_colors(setup, monkeyp
     # Black first moves at ply 1, so a ply-based count would never sample it.
     assert temperatures["red"] == [1.0, 0.0, 0.0]
     assert temperatures["black"] == [1.0, 0.0, 0.0]
+
+
+def test_the_engine_is_sent_every_earlier_move_of_the_game(setup, monkeypatch) -> None:
+    engine, checkpoint, _, network = setup
+    positions: list[str] = []
+    send = UcciEngine.send
+
+    def recording_send(self, command: str) -> None:
+        if command.startswith("position"):
+            positions.append(command)
+        send(self, command)
+
+    monkeypatch.setattr(UcciEngine, "send", recording_send)
+    result = _evaluate(engine, checkpoint, sample_plies=1, games=2, eval_file=network)
+
+    # Red moves at even plies, so the engine moves at even plies exactly when the model is Black.
+    expected = [
+        " ".join(cc_move_to_engine(move) for move in game["moves"][:ply])
+        for game in result["games"]
+        for ply in range(len(game["moves"]))
+        if (ply % 2 == 0) == (game["model_color"] == "black")
+    ]
+    assert [command.partition(" moves ")[2] for command in positions] == expected
+    assert result["opponent_engine"]["sees_game_history"] is True
 
 
 def test_engine_games_record_the_engine_and_validate(setup, tmp_path) -> None:

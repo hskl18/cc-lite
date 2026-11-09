@@ -90,7 +90,8 @@ The protocol has no rule that declares a capped game or capped run a win.
 
 `python -m eval.evaluate --opponent engine` plays a checkpoint against a UCI engine at a fixed depth, with [`configs/engine_eval.yaml`](../configs/engine_eval.yaml) as the reference setting.
 The engine is deterministic and the model's later moves are greedy, so `eval.sample_plies` must be above 0 for more than two games; it counts the model's own moves, so Black is sampled too, and the evaluator refuses otherwise and clears the engine's search state before every game.
-The manifest's `opponent_engine` records the command, the executable's path and SHA-256, the flavor, the depth, and the protocol.
+Before every engine move the adapter sends the whole game (`position fen <start> moves ...`), because an engine given only the current position cannot see a repetition or a perpetual check and loses games to adjudication that it would otherwise avoid.
+The manifest's `opponent_engine` records the command, the executable's path and SHA-256, the flavor, the depth, the protocol, and `sees_game_history`.
 Pikafish loads its network from a separate file, so a Pikafish opponent must be given `--engine-eval-file`, and the record pins that file's path and SHA-256 too.
 Engine binaries are not distributed with this repository, so the validator checks that the record is complete but cannot recompute the hash.
 
