@@ -48,10 +48,10 @@ Exit criterion:
 
 ## Stage 2: Practical Bootstrap
 
-Status: planned.
+Status: started. v0.3.0 distills Fairy-Stockfish labels into a checkpoint that beats both scripted baselines; record converters and low-depth engine evaluation remain.
 
 - Add converters for public Xiangqi records into the normalized JSONL format.
-- Cache Pikafish labels for policy and value distillation.
+- Cache engine labels for policy and value distillation, from Fairy-Stockfish with a CC0 network, because Pikafish's weight license would bind derived checkpoints.
 - Train supervised/distilled checkpoints before self-play.
 - Track legal move accuracy, target move accuracy, value loss, and engine-match result together.
 

@@ -68,7 +68,7 @@ Checkpoint-versus-checkpoint comparisons use a pinned suite of mirrored openings
 Each opening and seed is one pair: checkpoint A plays Red, then Black, from the same position with the same seed.
 A pair counts only when both legs reach a terminal result, so a capped leg cannot tilt the color balance.
 Score intervals come from a percentile bootstrap over complete pairs, and the sequential stop uses a Hoeffding confidence sequence with a union bound over repeated looks, so stopping early does not inflate the error rate.
-No checkpoint pair in this repository has yet produced enough terminal pairs for a result.
+The first result is `evidence/distill-v1/vs-debug`: the distilled checkpoint against the debug checkpoint, 43 wins, 1 draw, and 0 losses over 22 complete pairs, stopped as superior.
 
 ### Failure found and fixed: seeds that changed nothing
 
@@ -102,8 +102,30 @@ With about 30 legal moves per position in these games, a 50-simulation budget ra
 `load_checkpoint` used `torch.load(..., weights_only=False)`, which unpickles arbitrary objects, so a crafted `.pt` file could run code when evaluated.
 Every checkpoint writer in `src/train` stores only tensors and plain Python values, so loading now uses `weights_only=True`.
 
+## Distillation from engine labels
+
+v0.3.0 trains the first distilled checkpoint: an engine picks the move and scores the position, and the network learns both.
+
+**Which engine.** The Pikafish NNUE license forbids commercial use without permission of its weights and of weights derived from them, and a distilled checkpoint could count as derived, while this repository is Apache-2.0.
+The same license states that the xiangqi networks the Pikafish developers train for Fairy-Stockfish are CC0, so labels come from Fairy-Stockfish with one of those networks built in, and Pikafish remains usable as an evaluation opponent.
+Fairy-Stockfish numbers ranks 1 to 10, with a two-character rank 10, and plays chess until its xiangqi variant is selected; the adapter's `fairy` flavor handles both and refuses the UCCI protocol, where the engine switches rank base.
+
+**Positions.** The engine plays itself at depth 2, and 15 percent of moves are uniformly random, so the data covers more than one line; the eight evaluation openings are excluded, so the paired comparison starts from unseen positions.
+12,000 games gave 848,307 unique positions in four minutes on 14 processes.
+
+**Labels.** Each position is searched at depth 10 with the engine state cleared first.
+Without the clear, a process's earlier searches leave hash and history state behind, so a label could depend on which positions shared a process; with it, 1 and 14 workers produce byte-identical labels.
+The value target is the side-to-move score divided by 1,000 and clipped.
+
+**What it bought.** After eleven minutes of training on an RTX 5070 Ti, the distilled checkpoint won 19 of 20 games against the one-ply material grabber, which had beaten the debug checkpoint in 15 of 20, and the paired comparison against the debug checkpoint stopped as superior after 22 pairs.
+The two networks differ in size and training data, so this compares checkpoints, not training alone.
+
+**What it did not.** The random moves make many games lopsided, so 44 percent of value targets sit at the clip and the value head learns little about the size of a large advantage.
+The training metrics are averaged over the training data, not measured on held-out positions.
+No result here says how the network fares against an engine.
+
 ## Known limits
 
 - The repetition rule does not classify long chases, so some tournament outcomes differ.
-- The only committed checkpoint is a debug artifact; there is no trained model of useful strength.
+- The best committed checkpoint was distilled from a depth-10 engine and has been compared only with scripted movers and the debug checkpoint, never with an engine.
 - Torch inference on different hardware or library versions can change floating-point ties, so a rerun elsewhere may choose different moves; the committed raw games remain the source of truth.

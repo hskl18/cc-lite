@@ -2,7 +2,7 @@
 
 `train/checkpoint.pt` is a 128-channel, 8-block policy-value network (3,860,347 parameters) trained by supervised distillation from Fairy-Stockfish labels.
 It was produced on 2026-11-08 on one machine: AMD Ryzen 7 9800X3D, 62 GB RAM, NVIDIA GeForce RTX 5070 Ti (16 GB), Ubuntu 24.04 under WSL2, PyTorch 2.11.0 with CUDA 12.8.
-This directory records how it was made; evaluation results are kept in their own bundles.
+This directory records how it was made and holds its three evaluation bundles.
 
 ## Labels come from Fairy-Stockfish, not Pikafish
 
@@ -37,7 +37,7 @@ python -m train.experiment run --config configs/distill_gpu.yaml --data ~/runs/d
 ## Reading the numbers
 
 The metrics in `train/metrics.json` are averages over all six training epochs on the training data, not held-out results.
-Averaged that way, the network's top move matched the engine's in 24.9 percent of positions, and its top move was legal in 90.3 percent.
+Averaged that way, the network's top move matched the engine's in 24.9 percent of positions, and its unmasked top move was legal in 90.3 percent; MCTS masks illegal moves, so play never uses one.
 
 The value targets are coarse.
 Random moves make many games lopsided, and 374,457 of the 848,307 labels (44 percent) sit at the clip of plus or minus 1, so the value head learns little about the size of a large advantage.
@@ -45,7 +45,33 @@ Random moves make many games lopsided, and 374,457 of the 848,307 labels (44 per
 ## What is and is not here
 
 The checkpoint, the training manifest and metrics, and the two data manifests are committed.
-The positions and labels files (56 MB and 90 MB) are not in Git; their SHA-256 digests are in the manifests.
+The positions and labels files (56 MB and 90 MB) are not in Git; their SHA-256 digests are in the manifests, and xz-compressed copies are attached to the [v0.3.0 release](https://github.com/hskl18/cc-lite/releases/tag/v0.3.0) as `positions.jsonl.xz` and `labels.jsonl.xz`.
 The training bundle passed `train.experiment validate` on the training machine, before publication.
 Before publication, the home directory in recorded paths was rewritten to `~/`; nothing else in these records was altered.
 The validator reads the recorded paths literally and needs both the labels file and the config, so re-validating requires a local copy of `train/manifest.json` with the data and config paths pointing at those files.
+
+## Evaluation
+
+All three bundles were produced from a clean checkout of `989a423`, which added this checkpoint, and validate with `python -m eval.evidence validate`.
+
+| Bundle | Settings | Result |
+| --- | --- | --- |
+| [`random`](random) | `configs/baseline_cpu.yaml`: CPU, 50 simulations, 20 games, colors alternating, 400-ply cap | 20 wins, 0 draws, 0 losses, 0 capped |
+| [`material`](material) | the same | 19 wins, 0 draws, 1 loss, 0 capped |
+| [`vs-debug`](vs-debug) | `configs/paired_eval.yaml`: GPU, 200 simulations, 6 sampled plies, seeds 1, 7, 19, `paired-v1` suite, up to 24 pairs | 43 wins, 1 draw, 0 losses over 22 complete pairs; score rate 0.989, 95 percent paired-bootstrap interval 0.966 to 1.0; stopped as superior |
+
+The settings for `random` and `material` match `evidence/baseline-v1`, which evaluated the debug checkpoint on an Apple M3 Pro; these ran on the Ryzen CPU above, and floating-point ties can differ between machines.
+The one loss against the material mover came as Black at ply 363, with no legal moves; the one draw against the debug checkpoint was a threefold repetition at ply 271.
+All 44 paired games differ from one another, so the three seeds did not replay the same games.
+The paired report also gives an Elo difference of 657 (533 to 780) by `logistic-elo-with-beta-half-continuity-correction`, a small-sample method; with a debug checkpoint as the opponent, that number says nothing about absolute strength.
+
+```bash
+export PYTHONPATH=src
+CK=evidence/distill-v1/train/checkpoint.pt
+python -m eval.evaluate --config configs/baseline_cpu.yaml --checkpoint $CK --opponent random --output-dir evidence/distill-v1/random
+python -m eval.evaluate --config configs/baseline_cpu.yaml --checkpoint $CK --opponent material --output-dir evidence/distill-v1/material
+python -m eval.head_to_head --config configs/paired_eval.yaml --checkpoint-a $CK \
+  --checkpoint-b evidence/debug-v1/checkpoint/selfplay.pt --opening-suite configs/openings/paired-v1.json \
+  --seeds 1,7,19 --min-pairs 8 --max-pairs 24 --output-dir evidence/distill-v1/vs-debug
+```
+

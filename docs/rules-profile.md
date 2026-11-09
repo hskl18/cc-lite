@@ -1,6 +1,6 @@
 # CC-Lite Research Adjudication Profile 1
 
-This document defines the one Xiangqi rules profile supported by cc-lite v0.2.0.
+This document defines the one Xiangqi rules profile supported by cc-lite since v0.2.0.
 It is intended to make local self-play and evaluation reproducible.
 It is not a claim of complete compatibility with any national, regional, online, or tournament rulebook.
 

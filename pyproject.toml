@@ -1,6 +1,6 @@
 [project]
 name = "cc-lite"
-version = "0.2.0"
+version = "0.3.0"
 description = "A compact AlphaZero-style Xiangqi research baseline for local machines."
 readme = "README.md"
 license = "Apache-2.0"

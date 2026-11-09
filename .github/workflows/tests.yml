@@ -31,6 +31,9 @@ jobs:
           python -m eval.evidence validate --run-dir evidence/debug-v1/material
           python -m eval.evidence validate --run-dir evidence/baseline-v1/random
           python -m eval.evidence validate --run-dir evidence/baseline-v1/material
+          python -m eval.evidence validate --run-dir evidence/distill-v1/random
+          python -m eval.evidence validate --run-dir evidence/distill-v1/material
+          python -m eval.evidence validate --run-dir evidence/distill-v1/vs-debug
       - name: Build and inspect package
         if: matrix.python-version == '3.12'
         run: python scripts/release_check.py
