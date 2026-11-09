@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.experiment",
+    "run",
+    "--config",
+    "configs/distill_gpu.yaml",
+    "--data",
+    "~/runs/distill-v1/labels.jsonl",
+    "--output-dir",
+    "~/runs/distill-v1/train"
+  ],
+  "checkpoint": {
+    "path": "checkpoint.pt",
+    "sha256": "02882b1654bc05ea84885a73ce4a40a61eccf1f48941a08aa99a9995abbceb1f"
+  },
+  "config": {
+    "path": "~/cc-lite/configs/distill_gpu.yaml",
+    "sha256": "c168298a3bc30447816815119b5058a39d0363f6905c5f11df34c7dd24e208cd"
+  },
+  "data": {
+    "path": "~/runs/distill-v1/labels.jsonl",
+    "sha256": "7e29015631cf6c6b0dec49edf18544fca21584b0673062fc53a90745c90ad09c"
+  },
+  "engine": null,
+  "environment": {
+    "device": "cuda",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.11.0+cu128"
+  },
+  "experiment": "bounded_supervised_bootstrap",
+  "limits": {
+    "max_records": 2000000
+  },
+  "metrics": {
+    "path": "metrics.json",
+    "sha256": "5780fc1edf549d23542a7d1919ce9c8fff26e6d576029776ea0057d8d5df1660"
+  },
+  "schema_version": 1,
+  "seed": 42,
+  "source": {
+    "dirty": false,
+    "git_commit": "ed8676149f04de218e3057ca47a57cf7157177db"
+  }
+}
