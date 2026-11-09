@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import eval.head_to_head as head_to_head
@@ -201,3 +202,66 @@ def test_paired_match_records_real_max_plies_as_truncation(monkeypatch) -> None:
     assert result["summary"]["terminal"]["wins"] == 0
     assert result["summary"]["paired"]["complete_pairs"] == 0
     assert result["summary"]["sequential_stop"]["decision"] == "inconclusive"
+
+
+def test_paired_match_refuses_several_seeds_when_every_move_is_greedy(monkeypatch) -> None:
+    monkeypatch.setattr(head_to_head, "load_checkpoint", lambda *args, **kwargs: pytest.fail("must refuse first"))
+    with pytest.raises(ValueError, match="sample_plies"):
+        head_to_head.play_paired_match(
+            "candidate.pt",
+            "reference.pt",
+            config={"device": "cpu"},
+            opening_suite=OPENING_SUITE,
+            seeds=[1, 7],
+            simulations=1,
+            max_plies=4,
+            min_pairs=1,
+        )
+
+
+def test_seeds_play_different_games_through_sampled_plies(monkeypatch) -> None:
+    temperatures: list[float] = []
+
+    class SamplingSearch:
+        def __init__(self, evaluator, config) -> None:
+            self.temperature = config.temperature
+            self.last_nodes_per_second = 100.0
+
+        def run(self, board):
+            temperatures.append(self.temperature)
+            moves = board.legal_moves()
+            if self.temperature > 0:
+                return moves[int(np.random.choice(len(moves)))], None
+            return moves[0], None
+
+    monkeypatch.setattr(head_to_head, "load_checkpoint", lambda *args, **kwargs: (object(), {}))
+    monkeypatch.setattr(head_to_head, "TorchEvaluator", lambda *args, **kwargs: object())
+    monkeypatch.setattr(head_to_head, "MCTS", SamplingSearch)
+
+    result = head_to_head.play_paired_match(
+        "candidate.pt",
+        "reference.pt",
+        config={"device": "cpu"},
+        opening_suite=OPENING_SUITE,
+        seeds=[1, 7],
+        simulations=1,
+        max_plies=5,
+        min_pairs=1,
+        max_pairs=2,
+        min_seeds=1,
+        sample_plies=3,
+    )
+
+    red_games = {record["seed"]: record["moves"] for record in result["games"] if record["candidate_color"] == RED}
+    assert set(red_games) == {1, 7}
+    assert red_games[1] != red_games[7]
+    assert temperatures[:5] == [1.0, 1.0, 1.0, 0.0, 0.0]
+
+
+def test_sampling_seeds_are_shared_within_a_pair_and_differ_across_pairs() -> None:
+    schedule = build_paired_schedule(load_opening_suite(OPENING_SUITE), [1, 7])
+    seeds_by_pair: dict[str, set[int]] = {}
+    for scheduled in schedule:
+        seeds_by_pair.setdefault(scheduled.pair_id, set()).add(head_to_head.pair_rng_seed(scheduled.pair_id))
+    assert all(len(seeds) == 1 for seeds in seeds_by_pair.values())
+    assert len({next(iter(seeds)) for seeds in seeds_by_pair.values()}) == len(seeds_by_pair)
