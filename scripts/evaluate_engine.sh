@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 3 ]]; then
-  echo "usage: $0 CONFIG CHECKPOINT ENGINE_COMMAND [DEPTH] [OUTPUT_DIR]" >&2
+if [[ $# -lt 4 ]]; then
+  echo "usage: $0 CONFIG CHECKPOINT ENGINE_COMMAND EVAL_FILE [DEPTH] [OUTPUT_DIR]" >&2
   exit 2
 fi
 
@@ -12,5 +12,6 @@ python -m eval.evaluate \
   --checkpoint "$2" \
   --opponent engine \
   --engine-command "$3" \
-  --engine-depth "${4:-4}" \
-  --output-dir "${5:-runs/engine-evaluation}"
+  --engine-eval-file "$4" \
+  --engine-depth "${5:-4}" \
+  --output-dir "${6:-runs/engine-evaluation}"

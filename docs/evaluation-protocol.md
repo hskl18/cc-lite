@@ -86,6 +86,21 @@ Reaching the configured pair cap without crossing either boundary stops the run 
 Truncated pairs count toward the resource cap but not toward completed-pair evidence.
 The protocol has no rule that declares a capped game or capped run a win.
 
+## Engine opponents
+
+`python -m eval.evaluate --opponent engine` plays a checkpoint against a UCI engine at a fixed depth, with [`configs/engine_eval.yaml`](../configs/engine_eval.yaml) as the reference setting.
+The engine is deterministic and the model's later moves are greedy, so `eval.sample_plies` must be above 0 for more than two games; it counts the model's own moves, so Black is sampled too, and the evaluator refuses otherwise and clears the engine's search state before every game.
+The manifest's `opponent_engine` records the command, the executable's path and SHA-256, the flavor, the depth, and the protocol.
+Pikafish loads its network from a separate file, so a Pikafish opponent must be given `--engine-eval-file`, and the record pins that file's path and SHA-256 too.
+Engine binaries are not distributed with this repository, so the validator checks that the record is complete but cannot recompute the hash.
+
+## Held-out label agreement
+
+`python -m eval.label_agreement` compares a checkpoint with engine labels on positions it was not trained on, built with `train.engine_positions --exclude-positions` and labeled by `train.distill_engine`.
+It reports top-1 agreement with illegal moves masked, as in MCTS, and the share of positions whose unmasked top move is legal.
+Value sign agreement counts only labels at least 0.1 from zero; a model's sign does not depend on the mapping it was trained with, so checkpoints trained on different mappings can be compared on it, as long as both are measured on the same held-out labels with the same threshold.
+Value MSE depends on the mapping and compares only checkpoints trained on the same one.
+
 ## Evidence validation and claims
 
 Validate a written bundle with:

@@ -1,0 +1,11 @@
+# A checkpoint against a fixed-depth engine. Checkpoints carry their architecture.
+# The engine is deterministic, so sample_plies draws the model's first moves (counted per
+# model move) from MCTS visit counts with each game's seed; without it every game of one
+# color would repeat.
+seed: 1
+device: auto
+eval:
+  games: 20
+  simulations: 200
+  max_plies: 400
+  sample_plies: 6

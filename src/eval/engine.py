@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import math
 import queue
 import re
 import shlex
+import shutil
 import subprocess
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
+from eval.evidence import sha256_file
 from xiangqi.board import BLACK, RED, Move
 
 ENGINE_PIECE_TRANSLATION = str.maketrans({"H": "N", "h": "n", "E": "B", "e": "b"})
@@ -31,10 +35,46 @@ def command_argv(command: str) -> list[str]:
     return argv
 
 
-def score_to_value(score_cp: float | None, scale: float = 1000.0) -> float:
+VALUE_MAPPINGS = ("linear", "tanh")
+
+
+def score_to_value(score_cp: float | None, scale: float = 1000.0, mapping: str = "linear") -> float:
+    """Map a side-to-move centipawn score to [-1, 1]: clipped linear, or tanh, which keeps big leads apart."""
+
     if score_cp is None:
         return 0.0
+    if mapping == "tanh":
+        return math.tanh(score_cp / scale)
+    if mapping != "linear":
+        raise ValueError(f"Unknown value mapping {mapping!r}; expected one of {VALUE_MAPPINGS}")
     return max(-1.0, min(1.0, score_cp / scale))
+
+
+def engine_provenance(command: str, eval_file: str | None = None) -> dict[str, object]:
+    """Resolve and hash the engine executable, any file arguments, and a pinned network file."""
+
+    argv = command_argv(command)
+    executable = shutil.which(argv[0])
+    if executable is None:
+        candidate = Path(argv[0]).expanduser().resolve()
+        if not candidate.is_file():
+            raise FileNotFoundError(f"Cannot resolve engine executable: {argv[0]}")
+        executable = str(candidate)
+    argument_files = []
+    for argument in argv[1:]:
+        candidate = Path(argument).expanduser()
+        if candidate.is_file():
+            resolved = candidate.resolve()
+            argument_files.append({"path": str(resolved), "sha256": sha256_file(resolved)})
+    record: dict[str, object] = {
+        "command": argv,
+        "executable": {"path": str(Path(executable).resolve()), "sha256": sha256_file(executable)},
+        "argument_files": argument_files,
+    }
+    if eval_file is not None:
+        network = Path(eval_file).expanduser().resolve()
+        record["eval_file"] = {"path": str(network), "sha256": sha256_file(network)}
+    return record
 
 
 def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
@@ -91,12 +131,16 @@ class UcciEngine:
         timeout: float = 10.0,
         init_command: str = "uci",
         flavor: str = "pikafish",
+        eval_file: str | None = None,
     ):
         if flavor not in ENGINE_FLAVORS:
             raise ValueError(f"Unknown engine flavor {flavor!r}; expected one of {sorted(ENGINE_FLAVORS)}")
         if flavor == "fairy" and init_command != "uci":
             # In UCCI mode Fairy-Stockfish switches to zero-based ranks and other option syntax.
             raise ValueError("The fairy flavor supports only the UCI protocol")
+        if eval_file is not None and init_command != "uci":
+            # UCCI has its own option syntax and no standard network option, so the pin could be ignored.
+            raise ValueError("Pinning a network file is supported only over the UCI protocol")
         self.init_command = init_command
         self.rank_base = ENGINE_FLAVORS[flavor]
         self.proc = subprocess.Popen(
@@ -117,6 +161,11 @@ class UcciEngine:
         self.read_until((ok_prefix,), timeout)
         if flavor == "fairy":
             self.send("setoption name UCI_Variant value xiangqi")
+            self.send("isready")
+            self.read_until(("readyok",), timeout)
+        if eval_file is not None:
+            # Pin the network explicitly; otherwise the engine loads whatever file sits beside it.
+            self.send(f"setoption name EvalFile value {Path(eval_file).expanduser().resolve()}")
             self.send("isready")
             self.read_until(("readyok",), timeout)
 
@@ -149,8 +198,7 @@ class UcciEngine:
     def new_game(self) -> None:
         """Clear search state, so a result depends on the position and not on what came before."""
 
-        if self.init_command == "uci":
-            self.send("ucinewgame")
+        self.send("ucinewgame" if self.init_command == "uci" else "setoption newgame")
         self.send("isready")
         self.read_until(("readyok",))
 

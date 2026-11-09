@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import subprocess
 import sys
@@ -69,6 +70,45 @@ def test_parallel_labels_match_a_single_worker_in_order(tmp_path) -> None:
         assert manifest["engine"]["workers"] == int(workers)
     assert outputs[0] == outputs[1]
     assert len(outputs[0].splitlines()) == 9
+    first = json.loads(outputs[0].splitlines()[0])
+    assert first["score_cp"] == 50.0
+    assert first["value"] == 0.05
+
+
+def test_tanh_labels_keep_the_raw_score_and_record_the_mapping(tmp_path) -> None:
+    positions = tmp_path / "positions.jsonl"
+    positions.write_text(json.dumps({"fen": START_FEN}) + "\n", encoding="utf-8")
+    output = tmp_path / "labels.jsonl"
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+    subprocess.run(
+        [sys.executable, "-m", "train.distill_engine", "--engine", fake_engine(tmp_path),
+         "--engine-flavor", "fairy", "--positions", str(positions), "--output", str(output),
+         "--depth", "1", "--value-mapping", "tanh", "--value-scale", "100"],
+        check=True, env=env, capture_output=True,
+    )
+    row = json.loads(output.read_text(encoding="utf-8"))
+    assert row["score_cp"] == 50.0
+    assert row["value"] == math.tanh(0.5)
+    manifest = json.loads(Path(f"{output}.manifest.json").read_text(encoding="utf-8"))
+    assert manifest["value_mapping"] == {"kind": "tanh", "scale_cp": 100.0}
+
+
+def test_held_out_positions_leave_out_a_training_set(tmp_path) -> None:
+    training = tmp_path / "training.jsonl"
+    # Written without the side-to-move token; it must still match the canonical start position.
+    training.write_text(json.dumps({"fen": START_FEN.rsplit(" ", 1)[0]}) + "\n", encoding="utf-8")
+    output = tmp_path / "held_out.jsonl"
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+    subprocess.run(
+        [sys.executable, "-m", "train.engine_positions", "--engine", fake_engine(tmp_path),
+         "--engine-flavor", "fairy", "--games", "2", "--max-plies", "6", "--seed", "3",
+         "--exclude-positions", str(training), "--output", str(output)],
+        check=True, env=env, capture_output=True,
+    )
+    fens = [json.loads(line)["fen"] for line in output.read_text(encoding="utf-8").splitlines()]
+    assert START_FEN not in fens and fens
+    manifest = json.loads(Path(f"{output}.manifest.json").read_text(encoding="utf-8"))
+    assert manifest["excluded_positions"]["excluded_fens"] == 1
 
 
 def test_engine_games_are_seeded_and_fall_back_to_legal_moves(tmp_path) -> None:

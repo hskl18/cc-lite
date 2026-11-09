@@ -1,3 +1,5 @@
+import math
+
 from eval.engine import (
     command_argv,
     engine_move_to_cc,
@@ -50,3 +52,14 @@ def test_engine_moves_off_the_board_are_rejected():
         except ValueError:
             continue
         raise AssertionError(f"{text!r} with rank base {rank_base} should be rejected")
+
+
+def test_tanh_mapping_keeps_large_scores_apart_and_unknown_mappings_fail():
+    assert score_to_value(500, 1000.0, "tanh") == math.tanh(0.5)
+    assert score_to_value(3000, 1000.0, "tanh") < score_to_value(5000, 1000.0, "tanh") < 1.0
+    assert score_to_value(3000, 1000.0) == score_to_value(5000, 1000.0) == 1.0
+    try:
+        score_to_value(1.0, 1000.0, "cubic")
+    except ValueError:
+        return
+    raise AssertionError("unknown mappings must be rejected")
