@@ -11,7 +11,8 @@
 | Labels at plus or minus 0.99 or beyond | 374,457 (44 percent) | 108,913 (12 percent), 99,981 of them mates |
 
 Fewer random moves leave fewer lopsided positions, and the tanh mapping keeps large leads apart instead of clipping them.
-The scale of 800 centipawns was chosen from the 22,314 held-out labels that are not mate scores, whose median absolute score is 853 and 90th percentile 1,487.
+The scale of 800 centipawns was chosen by looking at the 22,314 held-out labels that are not mate scores, whose median absolute score is 853 and 90th percentile 1,487.
+The 783,096 non-mate training labels give 856 and 1,491, so the training data would have led to the same scale, but held-out value results are not an independent test of that choice.
 Both changes landed together, so a difference between the two checkpoints cannot be credited to either one alone.
 
 ## How it was made
