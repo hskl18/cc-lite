@@ -20,4 +20,4 @@ Do not open a public issue that contains credentials, private game records, or a
   Only point cc-lite at engine binaries you trust.
 - Game-record ingestion validates every move and requires a provenance file, but it does not check that a dataset's license is genuine.
 - Engine binaries, downloaded datasets, and generated checkpoints stay out of Git through `.gitignore`.
-  The committed checkpoints are the 6.8 MB debug artifact under `evidence/debug-v1/checkpoint/` and the 15.5 MB distilled checkpoint under `evidence/distill-v1/train/`.
+  The committed checkpoints are the 6.8 MB debug artifact under `evidence/debug-v1/checkpoint/` and the 15.5 MB distilled checkpoints under `evidence/distill-v1/train/` and `evidence/distill-v2/train/`.

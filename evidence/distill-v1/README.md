@@ -40,7 +40,7 @@ The metrics in `train/metrics.json` are averages over all six training epochs on
 Averaged that way, the network's top move matched the engine's in 24.9 percent of positions, and its unmasked top move was legal in 90.3 percent; MCTS masks illegal moves, so play never uses one.
 
 The value targets are coarse.
-Random moves make many games lopsided, and 374,457 of the 848,307 labels (44 percent) sit at the clip of plus or minus 1, so the value head learns little about the size of a large advantage.
+Random moves make many games lopsided, and 374,457 of the 848,307 labels (44 percent) sit at 0.99 or beyond in absolute value, 369,606 of them exactly at the clip of plus or minus 1, so the value head learns little about the size of a large advantage.
 
 ## What is and is not here
 

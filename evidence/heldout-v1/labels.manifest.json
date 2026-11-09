@@ -1,0 +1,51 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.distill_engine",
+    "--engine",
+    "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+    "--engine-flavor",
+    "fairy",
+    "--positions",
+    "~/runs/heldout/positions.jsonl",
+    "--output",
+    "~/runs/heldout/labels.jsonl",
+    "--depth",
+    "10",
+    "--workers",
+    "14"
+  ],
+  "engine": {
+    "argument_files": [],
+    "command": [
+      "~/engines/fairy/fairy-stockfish_x86-64-avx512"
+    ],
+    "depth": 10,
+    "executable": {
+      "path": "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+      "sha256": "086cc74c515599b1a421c57502ec05a12447230023088ca130731ecf30f47780"
+    },
+    "flavor": "fairy",
+    "hash_mb": 16,
+    "protocol": "uci",
+    "threads": 1,
+    "timeout_seconds": 10.0,
+    "workers": 14
+  },
+  "kind": "engine_distillation_labels",
+  "labels": {
+    "path": "~/runs/heldout/labels.jsonl",
+    "records": 24728,
+    "sha256": "314fdf67dc35f03b8ac4d75a7c9cd051d376bc71f3e68ab9cadf9b3fabaa0219"
+  },
+  "positions": {
+    "path": "~/runs/heldout/positions.jsonl",
+    "sha256": "583522dafcee99b6fbe731c0c3ecb233e44865d3ac4032436d146a9a39932152"
+  },
+  "schema_version": 1,
+  "value_mapping": {
+    "kind": "linear",
+    "scale_cp": 1000.0
+  }
+}
