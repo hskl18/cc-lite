@@ -52,7 +52,8 @@ The hand-recorded table was deleted because it had no raw games, checkpoint hash
 
 Every evaluation writes `games.jsonl`, `summary.json`, and `manifest.json`.
 The manifest records the checkpoint and config SHA-256 hashes, the exact command, the seed, the source commit and dirty flag, and the runtime environment.
-`python -m eval.evidence validate` replays every move from the starting FEN, checks the final FEN and terminal reason, recomputes the material diagnostics, rebuilds the summary from the raw rows, and compares every hash.
+`python -m eval.evidence validate` replays every move from the starting FEN, checks the final FEN and terminal reason, recomputes the material diagnostics, rebuilds the summary from the raw rows, and compares the hashes of the artifacts, checkpoints, config, and opening suite.
+Engine binaries are not distributed here, so their recorded hashes are checked for presence only.
 Any mismatch fails validation, and CI validates every committed evaluation bundle on every push.
 
 ### Failure found and fixed: a summary that validated on only one Python version
@@ -60,7 +61,7 @@ Any mismatch fails validation, and CI validates every committed evaluation bundl
 The 20-game `baseline-v1/random` bundle validated on Python 3.12 and failed CI on 3.11.
 Python 3.12 changed the builtin `sum()` over floats to compensated summation, so the mean of 20 nodes-per-second values differed in its last bit between versions, and the validator compares summaries exactly.
 PR #6 switched the float means to `math.fsum`, which is correctly rounded on every version and reproduces every committed summary bit for bit.
-CI validates every evaluation bundle on both 3.11 and 3.12, which is the check that caught it.
+CI validates every committed evaluation bundle on both 3.11 and 3.12, which is the check that caught it.
 
 ## Paired evaluation and stopping
 
@@ -122,7 +123,13 @@ The two networks differ in size and training data, so this compares checkpoints,
 
 **What it did not.** The random moves make many games lopsided, so 44 percent of value targets sit at the clip and the value head learns little about the size of a large advantage.
 The training metrics are averaged over the training data, not measured on held-out positions.
-No result here says how the network fares against an engine.
+Against Pikafish, with the engine sent the game's move history, this checkpoint lost 59 of 60 games at depths 1, 2, and 4.
+Its one win was a perpetual-check adjudication against the engine.
+Distillation works end to end, and the network still plays far below a shallow engine search.
+
+**What has not shown a gain.** `distill-v2` changed two things at once, fewer random moves and `tanh(score / 800)` value targets, and lost the paired comparison with `distill-v1` 14-1-33.
+Four self-play generations from `distill-v1` scored 18-4-26 against it, with an interval of 0.302 to 0.521.
+`distill-v2` matched `distill-v1` on held-out agreement and still lost their games, so agreement on that set did not predict playing strength.
 
 ## Search throughput for self-play
 
@@ -137,5 +144,5 @@ MCTS is now a generator that yields each board it needs evaluated, so `train.sel
 ## Known limits
 
 - The repetition rule does not classify long chases, so some tournament outcomes differ.
-- `distill-v1` was distilled from a depth-10 engine and has been compared only with scripted movers and the debug checkpoint, never with an engine; `distill-v2` has not been evaluated yet.
+- No checkpoint here has scored above 25 percent against Pikafish, even at depth 1, and the engine matches use 20 games per setting, so differences between checkpoints at this level are noise-sized.
 - Torch inference on different hardware or library versions can change floating-point ties, so a rerun elsewhere may choose different moves; the committed raw games remain the source of truth.

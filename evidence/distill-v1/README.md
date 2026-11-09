@@ -2,7 +2,7 @@
 
 `train/checkpoint.pt` is a 128-channel, 8-block policy-value network (3,860,347 parameters) trained by supervised distillation from Fairy-Stockfish labels.
 It was produced on 2026-11-08 on one machine: AMD Ryzen 7 9800X3D, 62 GB RAM, NVIDIA GeForce RTX 5070 Ti (16 GB), Ubuntu 24.04 under WSL2, PyTorch 2.11.0 with CUDA 12.8.
-This directory records how it was made and holds its three evaluation bundles.
+This directory records how it was made and holds its six evaluation bundles.
 
 ## Labels come from Fairy-Stockfish, not Pikafish
 
@@ -52,18 +52,26 @@ The validator reads the recorded paths literally and needs both the labels file 
 
 ## Evaluation
 
-All three bundles were produced from a clean checkout of `989a423`, which added this checkpoint, and validate with `python -m eval.evidence validate`.
+The first three bundles were produced from a clean checkout of `989a423`, which added this checkpoint, and the three Pikafish bundles from `321c289`, the first commit whose engine adapter sends the game's move history.
+All six validate with `python -m eval.evidence validate`.
 
 | Bundle | Settings | Result |
 | --- | --- | --- |
 | [`random`](random) | `configs/baseline_cpu.yaml`: CPU, 50 simulations, 20 games, colors alternating, 400-ply cap | 20 wins, 0 draws, 0 losses, 0 capped |
 | [`material`](material) | the same | 19 wins, 0 draws, 1 loss, 0 capped |
 | [`vs-debug`](vs-debug) | `configs/paired_eval.yaml`: GPU, 200 simulations, 6 sampled plies, seeds 1, 7, 19, `paired-v1` suite, up to 24 pairs | 43 wins, 1 draw, 0 losses over 22 complete pairs; score rate 0.989, 95 percent paired-bootstrap interval 0.966 to 1.0; stopped as superior |
+| [`pikafish-depth-1`](pikafish-depth-1) | `configs/engine_eval.yaml`: GPU, 200 simulations, 6 sampled plies, 20 games, colors alternating, 400-ply cap, Pikafish at depth 1 | 1 win, 0 draws, 19 losses, 0 capped |
+| [`pikafish-depth-2`](pikafish-depth-2) | the same at depth 2 | 0 wins, 0 draws, 20 losses, 0 capped |
+| [`pikafish-depth-4`](pikafish-depth-4) | the same at depth 4 | 0 wins, 0 draws, 20 losses, 0 capped |
 
 The settings for `random` and `material` match `evidence/baseline-v1`, which evaluated the debug checkpoint on an Apple M3 Pro; these ran on the Ryzen CPU above, and floating-point ties can differ between machines.
 The one loss against the material mover came as Black at ply 363, with no legal moves; the one draw against the debug checkpoint was a threefold repetition at ply 271.
 All 44 paired games differ from one another, so the three seeds did not replay the same games.
 The paired report also gives an Elo difference of 657 (533 to 780) by `logistic-elo-with-beta-half-continuity-correction`, a small-sample method; with a debug checkpoint as the opponent, that number says nothing about absolute strength.
+
+Pikafish is the 2026-09-06 build; each manifest pins its binary and network by SHA-256, and neither file is distributed here.
+Depths 1 to 4 are very shallow for Pikafish, and the network lost 59 of 60 games, so these bundles show that it is far below even a shallow engine search, not how far.
+Its one win came as Red, when Pikafish was adjudicated the loser for perpetual check.
 
 ```bash
 export PYTHONPATH=src

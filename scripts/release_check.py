@@ -29,8 +29,9 @@ def main() -> None:
     run([sys.executable, "-m", "cc_lite", "--version"])
     run([sys.executable, "-m", "ruff", "check", "."])
     run([sys.executable, "-m", "pytest"])
-    for bundle in ("debug-v1", "baseline-v1", "distill-v1"):
-        for opponent in ("random", "material", "vs-debug"):
+    runs = ("random", "material", "vs-debug", "vs-v1", "pikafish-depth-1", "pikafish-depth-2", "pikafish-depth-4")
+    for bundle in ("debug-v1", "baseline-v1", "distill-v1", "distill-v2"):
+        for opponent in runs:
             evidence_dir = ROOT / "evidence" / bundle / opponent
             if evidence_dir.is_dir():
                 run(

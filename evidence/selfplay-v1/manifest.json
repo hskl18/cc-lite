@@ -1,0 +1,169 @@
+{
+  "anchor_labels": {
+    "path": "~/runs/distill-v1/labels.jsonl",
+    "sha256": "7e29015631cf6c6b0dec49edf18544fca21584b0673062fc53a90745c90ad09c"
+  },
+  "argv": [
+    "python",
+    "-m",
+    "train.self_play_loop",
+    "--config",
+    "configs/selfplay_gpu.yaml",
+    "--checkpoint",
+    "evidence/distill-v1/train/checkpoint.pt",
+    "--anchor-labels",
+    "~/runs/distill-v1/labels.jsonl",
+    "--output-dir",
+    "~/runs/selfplay-v1"
+  ],
+  "config": {
+    "path": "configs/selfplay_gpu.yaml",
+    "sha256": "de55bde972852763a4b0511a9398236cc25e02657bdb113c397de1053d27a0e9"
+  },
+  "environment": {
+    "device": "cuda",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.11.0+cu128"
+  },
+  "generations": [
+    {
+      "checkpoint": {
+        "path": "~/runs/selfplay-v1/gen-01/checkpoint.pt",
+        "sha256": "9005cf695f85a254b85e7304811dae2b0b244e34de1768e2ae05dcd8b52c973f"
+      },
+      "generation": 1,
+      "parent": {
+        "path": "evidence/distill-v1/train/checkpoint.pt",
+        "sha256": "02882b1654bc05ea84885a73ce4a40a61eccf1f48941a08aa99a9995abbceb1f"
+      },
+      "self_play": {
+        "avg_game_plies": 101.89955357142857,
+        "avg_red_score": 0.04017857142857143,
+        "capped_games": 47,
+        "games": 448,
+        "positions": 45651,
+        "seconds": 991.2
+      },
+      "self_play_data": {
+        "path": "~/runs/selfplay-v1/gen-01/selfplay.jsonl",
+        "sha256": "eee63b6e3a890fda1a1a287ebccfe8061253f3b56a541ecf93f38aa67a6b6ab1"
+      },
+      "training": {
+        "anchor_positions": 45651,
+        "legal_move_accuracy": 0.945751462180456,
+        "policy_loss": 2.2633692823399882,
+        "seconds": 25.0,
+        "self_play_positions": 45651,
+        "target_accuracy": 0.47541127248034,
+        "value_loss": 0.2722450221246969
+      }
+    },
+    {
+      "checkpoint": {
+        "path": "~/runs/selfplay-v1/gen-02/checkpoint.pt",
+        "sha256": "1e84ae8bd6c59cc91c2182932d29a050af4a2ef9625a35193b10621dcb36626d"
+      },
+      "generation": 2,
+      "parent": {
+        "path": "~/runs/selfplay-v1/gen-01/checkpoint.pt",
+        "sha256": "9005cf695f85a254b85e7304811dae2b0b244e34de1768e2ae05dcd8b52c973f"
+      },
+      "self_play": {
+        "avg_game_plies": 99.109375,
+        "avg_red_score": 0.06919642857142858,
+        "capped_games": 35,
+        "games": 448,
+        "positions": 44401,
+        "seconds": 973.3
+      },
+      "self_play_data": {
+        "path": "~/runs/selfplay-v1/gen-02/selfplay.jsonl",
+        "sha256": "cfa951debc9a4fe100863f03512f2d1a69c22ed18ad39a5cba2d805cd774b996"
+      },
+      "training": {
+        "anchor_positions": 90052,
+        "legal_move_accuracy": 0.9513558832674455,
+        "policy_loss": 2.226547337582326,
+        "seconds": 27.4,
+        "self_play_positions": 90052,
+        "target_accuracy": 0.4789399458090881,
+        "value_loss": 0.27552326111146874
+      }
+    },
+    {
+      "checkpoint": {
+        "path": "~/runs/selfplay-v1/gen-03/checkpoint.pt",
+        "sha256": "cb628aa0923f72f61bf940841505a7177b52bd3e13fc1660d6f734af695ad816"
+      },
+      "generation": 3,
+      "parent": {
+        "path": "~/runs/selfplay-v1/gen-02/checkpoint.pt",
+        "sha256": "1e84ae8bd6c59cc91c2182932d29a050af4a2ef9625a35193b10621dcb36626d"
+      },
+      "self_play": {
+        "avg_game_plies": 104.08928571428571,
+        "avg_red_score": 0.06696428571428571,
+        "capped_games": 61,
+        "games": 448,
+        "positions": 46632,
+        "seconds": 1034.4
+      },
+      "self_play_data": {
+        "path": "~/runs/selfplay-v1/gen-03/selfplay.jsonl",
+        "sha256": "74f8b8892c925a62bffa93f88a97da05d081145c25aeff4069d3b04c666c68a9"
+      },
+      "training": {
+        "anchor_positions": 91033,
+        "legal_move_accuracy": 0.95422539079235,
+        "policy_loss": 2.2008656841097385,
+        "seconds": 31.9,
+        "self_play_positions": 91033,
+        "target_accuracy": 0.4864060285830413,
+        "value_loss": 0.27484812976761824
+      }
+    },
+    {
+      "checkpoint": {
+        "path": "~/runs/selfplay-v1/gen-04/checkpoint.pt",
+        "sha256": "740e80dbf775d23baf5a91400bcb5ef0caa95ec6a6140a23f1013d875142672c"
+      },
+      "generation": 4,
+      "parent": {
+        "path": "~/runs/selfplay-v1/gen-03/checkpoint.pt",
+        "sha256": "cb628aa0923f72f61bf940841505a7177b52bd3e13fc1660d6f734af695ad816"
+      },
+      "self_play": {
+        "avg_game_plies": 94.11383928571429,
+        "avg_red_score": 0.296875,
+        "capped_games": 50,
+        "games": 448,
+        "positions": 42163,
+        "seconds": 678.9
+      },
+      "self_play_data": {
+        "path": "~/runs/selfplay-v1/gen-04/selfplay.jsonl",
+        "sha256": "c4b9c97df848e1db2c5835bb209010f900614c19c6a52c29ff060a629e30a42e"
+      },
+      "training": {
+        "anchor_positions": 88795,
+        "legal_move_accuracy": 0.95522270398108,
+        "policy_loss": 2.1607043550696363,
+        "seconds": 11.2,
+        "self_play_positions": 88795,
+        "target_accuracy": 0.4976124781800777,
+        "value_loss": 0.25595064243725796
+      }
+    }
+  ],
+  "kind": "self_play_generations",
+  "schema_version": 1,
+  "source": {
+    "dirty": false,
+    "git_commit": "070c0fb1796a143d46eafbddeaecc923bb157a45"
+  },
+  "start_checkpoint": {
+    "path": "evidence/distill-v1/train/checkpoint.pt",
+    "sha256": "02882b1654bc05ea84885a73ce4a40a61eccf1f48941a08aa99a9995abbceb1f"
+  }
+}

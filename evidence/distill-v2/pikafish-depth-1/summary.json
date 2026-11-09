@@ -1,0 +1,18 @@
+{
+  "avg_nodes_per_second": 53.57667723532679,
+  "avg_plies": 60.9,
+  "games": 20,
+  "terminal": {
+    "draws": 2,
+    "games": 20,
+    "losses": 14,
+    "wins": 4
+  },
+  "truncation": {
+    "games": 0,
+    "material_ahead": 0,
+    "material_behind": 0,
+    "material_equal": 0,
+    "material_score_mean": 0.0
+  }
+}

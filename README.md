@@ -3,10 +3,10 @@
 [![tests](https://github.com/hskl18/cc-lite/actions/workflows/tests.yml/badge.svg)](https://github.com/hskl18/cc-lite/actions/workflows/tests.yml)
 
 `cc-lite` is a compact AlphaZero-style research workbench for Chinese Chess (Xiangqi): rules, a PyTorch policy-value network, PUCT MCTS, self-play, training, and an evaluation harness.
-It exists because small game-playing experiments are easy to over-read, so every reported result comes from raw games that a validator replays move by move.
+It exists because small game-playing experiments are easy to over-read, so every reported game result comes from raw games that a validator replays move by move.
 
-**Status: research baseline, v0.3.0.**
-The first distilled checkpoint clearly beats the scripted baselines and the debug checkpoint, but it has not been measured against an engine, and the repository makes no engine-strength or absolute Elo claim.
+**Status: research baseline, v0.4.0.**
+The first distilled checkpoint clearly beats the scripted baselines and the debug checkpoint, but it and its successor lost 112 of 120 games to Pikafish at depths 1 to 4, and the repository makes no engine-strength or absolute Elo claim.
 
 ## Headline result
 
@@ -22,7 +22,17 @@ In a separate paired comparison on the pinned opening suite (seeds 1, 7, and 19,
 Its score rate was 0.989, with a 95 percent paired-bootstrap interval of 0.966 to 1.0, and the sequential rule stopped at 22 pairs with a superiority decision.
 The references are scripted movers and an almost untrained network, so these results show that distillation works end to end, not that the network plays well.
 
-Every count above is rebuilt from the raw games by the validator:
+Against a real engine it does not.
+
+![Score over 20 games for distill-v1 and distill-v2: both near 100 percent against the scripted movers, and at most 25 percent against Pikafish at depth 1 and near zero at depths 2 and 4.](docs/media/results.png)
+
+*Wins-draws-losses from the committed bundles. The scripted movers used 50 simulations on CPU and Pikafish games used 200 on the GPU; `uv run scripts/plot_results.py` redraws it.*
+
+Two attempts to improve on `distill-v1` have not demonstrated a gain.
+[`distill-v2`](evidence/distill-v2), with fewer random moves and smoother value targets, lost their paired comparison 14-1-33.
+[Four generations of self-play](evidence/selfplay-v1) from `distill-v1` scored 18-4-26 against it, an interval of 0.302 to 0.521 that does not show an improvement.
+
+The validator rebuilds each count from the raw games, with the same command for every bundle in `evidence/distill-v1` and `evidence/distill-v2`; the generation-4 bundles are a release asset described in [`evidence/selfplay-v1`](evidence/selfplay-v1):
 
 ```bash
 python -m eval.evidence validate --run-dir evidence/distill-v1/random
@@ -46,7 +56,7 @@ The script replays all 40 baseline games on CPU and validates both bundles; it t
 - Tournament-rule compliance: results follow the narrower [CC-Lite Research Adjudication Profile 1](docs/rules-profile.md).
 - Large-scale training: the configs target one laptop or one consumer GPU.
 
-The practical path to strength is distillation from engine labels first, which v0.3.0 starts, then AlphaZero-lite self-play, as laid out in [`docs/industry-roadmap.md`](docs/industry-roadmap.md).
+The practical path to strength is distillation from engine labels first, then AlphaZero-lite self-play, which v0.3.0 and v0.4.0 have tried without yet reaching Pikafish at depth 2, as laid out in [`docs/industry-roadmap.md`](docs/industry-roadmap.md).
 The hard parts, the decisions behind them, and the failures that shaped them are in [DESIGN.md](DESIGN.md).
 
 ## Evidence
@@ -55,7 +65,10 @@ Each bundle holds every move, seed, color, start and final FEN, termination reas
 Terminal wins, draws, and losses are kept apart from games truncated at `max_plies`; material at a cutoff is diagnostic metadata and never becomes a result or a self-play label.
 CI validates every committed evaluation bundle on each push.
 
-- [`evidence/distill-v1`](evidence/distill-v1): the distilled checkpoint, the records of its data and training, and its three evaluation bundles; its [README](evidence/distill-v1/README.md) has the commands, and the 4 MB and 8 MB compressed positions and labels are attached to the v0.3.0 release.
+- [`evidence/distill-v1`](evidence/distill-v1): the distilled checkpoint, the records of its data and training, and its six evaluation bundles; its [README](evidence/distill-v1/README.md) has the commands, and the 4 MB and 8 MB compressed positions and labels are attached to the v0.3.0 release.
+- [`evidence/distill-v2`](evidence/distill-v2): a second distilled checkpoint with six evaluation bundles; its data is attached to the v0.4.0 release.
+- [`evidence/selfplay-v1`](evidence/selfplay-v1): the record of four self-play generations; the final checkpoint and its evaluation games are attached to the v0.4.0 release, so CI does not validate those.
+- [`evidence/heldout-v1`](evidence/heldout-v1): 24,728 labeled positions no distilled checkpoint trained on, with each checkpoint's agreement report; those reports replay no games.
 - [`evidence/baseline-v1`](evidence/baseline-v1): the debug checkpoint's floor in the table above, regenerated by `./scripts/generate_baseline_evidence.sh` with [`configs/baseline_cpu.yaml`](configs/baseline_cpu.yaml).
   A rerun of the first two games on the same machine reproduced the recorded moves exactly; other hardware or library versions can break floating-point ties differently, so the committed games stay the source of truth.
 - [`evidence/debug-v1`](evidence/debug-v1): a two-game-per-opponent pipeline smoke artifact with a 20-ply cap, regenerated by `./scripts/generate_debug_evidence.sh`.
@@ -371,7 +384,7 @@ The test suite covers the pinned rules profile, randomized legal-game reversibil
 
 1. Add separately tested XQF and CBL converters into the validated JSONL ingestion boundary.
 2. Build a larger replay buffer with checkpoint metadata and train/eval dashboards.
-3. Continue from the distilled checkpoint with AlphaZero-lite self-play; distillation labels come from Fairy-Stockfish because of Pikafish's weight license (see `DESIGN.md`).
+3. Find out why four self-play generations showed no gain over `distill-v1`, and train on more games per generation; distillation labels come from Fairy-Stockfish because of Pikafish's weight license (see `DESIGN.md`).
 4. Add repetition and check-state history planes for models that need access to adjudication context.
-5. Run ablations over channels, blocks, simulations, replay size, and data source.
-6. Benchmark the distilled checkpoint against an engine at low depth, which the paired comparisons so far have not done.
+5. Run ablations over channels, blocks, simulations, replay size, and data source, changing one thing at a time; `distill-v2` changed two.
+6. Speed up self-play generation, which takes far longer than training on its output.

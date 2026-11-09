@@ -34,7 +34,7 @@ Exit criterion:
 
 ## Stage 1: Measurement Against Strong Engines
 
-Status: started.
+Status: implemented for depths 1, 2, and 4, published in v0.4.0; depth 6 has not been run.
 
 - Add optional UCI/UCCI engine benchmark command.
 - Evaluate checkpoints against low-depth Pikafish instead of only random/material baselines.
@@ -48,7 +48,7 @@ Exit criterion:
 
 ## Stage 2: Practical Bootstrap
 
-Status: started. v0.3.0 distills Fairy-Stockfish labels into a checkpoint that beats both scripted baselines; record converters and low-depth engine evaluation remain.
+Status: started. v0.3.0 distills Fairy-Stockfish labels into a checkpoint that beats both scripted baselines, and v0.4.0 adds low-depth Pikafish evaluation, where the distilled checkpoints lost 112 of 120 games; record converters remain.
 
 - Add converters for public Xiangqi records into the normalized JSONL format.
 - Cache engine labels for policy and value distillation, from Fairy-Stockfish with a CC0 network, because Pikafish's weight license would bind derived checkpoints.
