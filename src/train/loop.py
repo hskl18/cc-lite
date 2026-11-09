@@ -29,11 +29,20 @@ def train_samples(
     lr: float,
     weight_decay: float = 1e-4,
     precision: str = "fp32",
+    num_workers: int = 0,
 ) -> TrainStats:
     if not samples:
         raise ValueError("No samples provided")
     dataset = ReplayDataset(samples)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # Encoding boards and legal-move masks is Python work; workers keep a GPU fed.
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=device.type == "cuda",
+        persistent_workers=num_workers > 0,
+    )
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     model.to(device)
     model.train()

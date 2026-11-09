@@ -121,6 +121,7 @@ def run_experiment(
         epochs=int(train_cfg.get("epochs", 1)),
         lr=float(train_cfg.get("lr", 1e-3)),
         precision=str(train_cfg.get("precision", "fp32")),
+        num_workers=int(train_cfg.get("num_workers", 0)),
     )
     metrics = {"samples": len(samples), **stats.__dict__}
     destination.parent.mkdir(parents=True, exist_ok=True)

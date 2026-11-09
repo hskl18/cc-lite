@@ -1,0 +1,16 @@
+# Supervised distillation from Fairy-Stockfish labels on one consumer GPU (RTX 5070 Ti, 16 GB).
+# Evaluation reuses configs/baseline_cpu.yaml, because checkpoints carry their own architecture.
+seed: 42
+device: auto
+model:
+  preset: small
+  channels: 128
+  blocks: 8
+training:
+  batch_size: 512
+  epochs: 6
+  lr: 0.001
+  precision: bf16
+  num_workers: 12
+bootstrap:
+  max_records: 2000000
