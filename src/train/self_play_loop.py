@@ -10,6 +10,7 @@ metrics, and the hashes of everything used go into `manifest.json`.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import multiprocessing
 import platform
@@ -60,6 +61,12 @@ def play_share(job: WorkerJob) -> tuple[list[ReplaySample], dict[str, float]]:
     )
 
 
+def derived_seed(*parts: int) -> int:
+    """A seed for one generation and worker, inside NumPy's 0..2**32-1 range for any base seed."""
+
+    return int.from_bytes(hashlib.sha256(":".join(map(str, parts)).encode()).digest()[:4], "big")
+
+
 def split_games(games: int, workers: int) -> list[int]:
     base, extra = divmod(games, workers)
     return [base + (1 if worker < extra else 0) for worker in range(workers) if base or worker < extra]
@@ -102,7 +109,23 @@ def main() -> None:
     anchor = read_jsonl(args.anchor_labels)
     replay: deque[list[ReplaySample]] = deque(maxlen=int(loop_cfg.get("replay_generations", 1)))
     current = Path(args.checkpoint)
-    records = []
+    records: list[dict[str, object]] = []
+    manifest = {
+        "schema_version": 1,
+        "kind": "self_play_generations",
+        "config": {"path": args.config, "sha256": sha256_file(args.config)},
+        "start_checkpoint": {"path": args.checkpoint, "sha256": sha256_file(args.checkpoint)},
+        "anchor_labels": {"path": args.anchor_labels, "sha256": sha256_file(args.anchor_labels)},
+        "generations": records,
+        "source": _git_source(),
+        "environment": {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "pytorch": torch.__version__,
+            "device": str(device),
+        },
+        "argv": ["python", "-m", "train.self_play_loop", *sys.argv[1:]],
+    }
     context = multiprocessing.get_context("spawn")  # CUDA cannot be forked
     for generation in range(1, generations + 1):
         started = time.perf_counter()
@@ -113,7 +136,7 @@ def main() -> None:
                 share,
                 int(sp.get("simulations", 25)),
                 int(sp.get("max_plies", 200)),
-                seed * 1_000_000 + generation * 1_000 + worker,
+                derived_seed(seed, generation, worker),
                 float(sp.get("temperature", 1.0)),
                 None if temperature_plies is None else int(temperature_plies),
                 float(sp.get("dirichlet_frac", 0.25)),
@@ -134,9 +157,9 @@ def main() -> None:
         replay.append(samples)
         buffer = [sample for part in replay for sample in part]
         anchor_count = min(len(anchor), int(float(loop_cfg.get("anchor_ratio", 1.0)) * len(buffer)))
-        training_data = buffer + random.Random(seed * 1_000 + generation).sample(anchor, anchor_count)
+        training_data = buffer + random.Random(derived_seed(seed, generation, -1)).sample(anchor, anchor_count)
 
-        set_seed(seed + generation)
+        set_seed(derived_seed(seed, generation, -2))
         model, _ = load_checkpoint(current, map_location=device)
         stats = train_samples(
             model,
@@ -170,26 +193,10 @@ def main() -> None:
                 "checkpoint": {"path": str(checkpoint), "sha256": sha256_file(checkpoint)},
             }
         )
+        # Rewritten after every generation, so an interrupted run keeps the record of what finished.
+        (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(json.dumps(records[-1], sort_keys=True), flush=True)
         current = checkpoint
-
-    manifest = {
-        "schema_version": 1,
-        "kind": "self_play_generations",
-        "config": {"path": args.config, "sha256": sha256_file(args.config)},
-        "start_checkpoint": {"path": args.checkpoint, "sha256": sha256_file(args.checkpoint)},
-        "anchor_labels": {"path": args.anchor_labels, "sha256": sha256_file(args.anchor_labels)},
-        "generations": records,
-        "source": _git_source(),
-        "environment": {
-            "python": platform.python_version(),
-            "platform": platform.platform(),
-            "pytorch": torch.__version__,
-            "device": str(device),
-        },
-        "argv": ["python", "-m", "train.self_play_loop", *sys.argv[1:]],
-    }
-    (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

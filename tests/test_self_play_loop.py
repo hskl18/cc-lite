@@ -40,3 +40,9 @@ def test_one_generation_writes_a_checkpoint_and_a_manifest(tmp_path, monkeypatch
     assert generation["self_play"]["positions"] == 8
     assert generation["training"]["anchor_positions"] == 4
     load_checkpoint(output / "gen-01" / "checkpoint.pt")
+
+
+def test_derived_seeds_stay_in_numpy_range_for_large_base_seeds():
+    seeds = {self_play_loop.derived_seed(4295, generation, worker) for generation in (1, 2) for worker in range(14)}
+    assert len(seeds) == 28
+    assert all(0 <= seed < 2**32 for seed in seeds)
