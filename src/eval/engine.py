@@ -94,6 +94,10 @@ class UcciEngine:
     ):
         if flavor not in ENGINE_FLAVORS:
             raise ValueError(f"Unknown engine flavor {flavor!r}; expected one of {sorted(ENGINE_FLAVORS)}")
+        if flavor == "fairy" and init_command != "uci":
+            # In UCCI mode Fairy-Stockfish switches to zero-based ranks and other option syntax.
+            raise ValueError("The fairy flavor supports only the UCI protocol")
+        self.init_command = init_command
         self.rank_base = ENGINE_FLAVORS[flavor]
         self.proc = subprocess.Popen(
             command_argv(command),
@@ -141,6 +145,14 @@ class UcciEngine:
             if line.startswith(prefixes):
                 return "\n".join(lines)
         raise TimeoutError(f"Engine did not answer with {prefixes}. Last lines: {lines[-8:]}")
+
+    def new_game(self) -> None:
+        """Clear search state, so a result depends on the position and not on what came before."""
+
+        if self.init_command == "uci":
+            self.send("ucinewgame")
+        self.send("isready")
+        self.read_until(("readyok",))
 
     def best_move(self, fen: str, depth: int) -> EngineResult:
         engine_fen = to_engine_fen(fen)

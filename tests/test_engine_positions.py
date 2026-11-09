@@ -27,6 +27,8 @@ for line in sys.stdin:
         move = "b3e3" if variant == "xiangqi" else "e2e4"
         print("info depth 1 score cp 50 pv " + move)
         print("bestmove " + move, flush=True)
+    elif command == "ucinewgame":
+        pass
     elif command == "quit":
         break
 """
@@ -82,3 +84,11 @@ def test_engine_games_are_seeded_and_fall_back_to_legal_moves(tmp_path) -> None:
 
 def test_unique_positions_keep_first_occurrence_and_drop_excluded() -> None:
     assert unique_positions(["a", "b", "a", "c", "d"], {"c"}) == ["a", "b", "d"]
+
+
+def test_fairy_flavor_refuses_the_ucci_protocol(tmp_path) -> None:
+    try:
+        UcciEngine(fake_engine(tmp_path), timeout=5.0, init_command="ucci", flavor="fairy")
+    except ValueError:
+        return
+    raise AssertionError("fairy with ucci must be rejected before the engine starts")

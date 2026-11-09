@@ -58,6 +58,7 @@ def _label_chunk(settings: _LabelSettings, fens: list[str]) -> list[ReplaySample
         engine.read_until(("readyok",))
         for fen in fens:
             board = Board.from_fen(fen)
+            engine.new_game()
             result = engine.best_move(board.to_fen(), settings.depth)
             move = result.move
             if move not in set(board.legal_moves()):
@@ -104,7 +105,8 @@ def main() -> None:
     settings = _LabelSettings(
         args.engine, args.timeout, args.init_command, args.engine_flavor, args.threads, args.hash_mb, args.depth
     )
-    # Chunks keep their order, so parallel output matches a single-worker run.
+    # Each position starts from a cleared engine and chunks keep their order,
+    # so the labels do not depend on the number of workers.
     chunk_size = max(1, -(-len(fens) // (args.workers * 8)))
     chunks = [fens[start : start + chunk_size] for start in range(0, len(fens), chunk_size)]
     samples: list[ReplaySample] = []

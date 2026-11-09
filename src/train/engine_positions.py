@@ -41,6 +41,7 @@ def play_games(settings: GameSettings, game_ids: list[int]) -> tuple[list[str], 
     try:
         for game_id in game_ids:
             rng = random.Random(f"{settings.seed}:{game_id}")
+            engine.new_game()
             board = Board.start()
             for _ in range(settings.max_plies):
                 moves = board.legal_moves()
