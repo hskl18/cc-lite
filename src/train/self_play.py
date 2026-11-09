@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from data.replay import ReplaySample, write_jsonl
-from mcts.search import MCTS, SearchConfig, TorchEvaluator, UniformEvaluator
+from mcts.search import MCTS, SearchConfig, TorchBatchEvaluator, TorchEvaluator, UniformEvaluator
 from model.checkpoint import load_checkpoint, save_checkpoint
 from model.network import ModelConfig, PolicyValueNet
 from train.config import choose_device, load_config, set_seed
@@ -76,6 +76,87 @@ def generate_self_play(
         "games": games,
         "positions": len(samples),
         "avg_game_plies": float(np.mean(lengths)) if lengths else 0.0,
+        "avg_red_score": float(np.mean(red_scores)) if red_scores else 0.0,
+        "avg_nodes_per_second": float(np.mean(nodes_per_second)) if nodes_per_second else 0.0,
+    }
+    return samples, metrics
+
+
+def generate_self_play_batched(
+    model: PolicyValueNet,
+    *,
+    device: torch.device,
+    games: int,
+    simulations: int,
+    max_plies: int,
+    seed: int,
+    temperature: float = 1.0,
+    temperature_plies: int | None = None,
+    dirichlet_frac: float = 0.25,
+    start_fen: str = START_FEN,
+) -> tuple[list[ReplaySample], dict[str, float]]:
+    """Play `games` games in lockstep, sending one leaf per game to the network in a single batch.
+
+    Each game's search is the same MCTS as `generate_self_play`; only the evaluation is batched.
+    Moves after `temperature_plies` are greedy. Results are deterministic for a given seed and
+    game count, but not identical to sequential play, because the games share one random stream.
+    """
+
+    set_seed(seed)
+    evaluator = TorchBatchEvaluator(model, str(device))
+    boards = [Board.from_fen(start_fen) for _ in range(games)]
+    trajectories: list[list[tuple[str, str, dict[int, float]]]] = [[] for _ in range(games)]
+    searches: dict[int, object] = {}
+    requests: dict[int, Board] = {}
+    nodes_per_second: list[float] = []
+
+    def start_next_move(game: int) -> None:
+        board = boards[game]
+        ply = len(trajectories[game])
+        if ply >= max_plies or board.adjudication() is not None or not board.legal_moves():
+            return
+        hot = temperature_plies is None or ply < temperature_plies
+        config = SearchConfig(
+            simulations=simulations, temperature=temperature if hot else 0.0, dirichlet_frac=dirichlet_frac
+        )
+        search = MCTS(evaluator, config)
+        steps = search.search(board)
+        searches[game] = (search, steps)
+        requests[game] = next(steps)
+
+    for game in range(games):
+        start_next_move(game)
+    while requests:
+        active = sorted(requests)
+        results = evaluator.evaluate_many([requests[game] for game in active])
+        for game, result in zip(active, results, strict=True):
+            search, steps = searches[game]
+            try:
+                requests[game] = steps.send(result)
+            except StopIteration as done:
+                move, policy = done.value
+                nodes_per_second.append(search.last_nodes_per_second)
+                board = boards[game]
+                trajectories[game].append(
+                    (board.to_fen(), board.turn, {MoveCodec.encode(m): float(p) for m, p in policy.items()})
+                )
+                board.push(move)
+                del requests[game], searches[game]
+                start_next_move(game)
+
+    samples: list[ReplaySample] = []
+    red_scores: list[float] = []
+    for board, trajectory in zip(boards, trajectories, strict=True):
+        outcome = _game_outcome(board, len(trajectory) >= max_plies)
+        red_scores.append(outcome[RED])
+        samples.extend(ReplaySample(fen=fen, policy=policy, value=outcome[color]) for fen, color, policy in trajectory)
+    lengths = [len(trajectory) for trajectory in trajectories]
+    metrics = {
+        "games": games,
+        "positions": len(samples),
+        "avg_game_plies": float(np.mean(lengths)) if lengths else 0.0,
+        "capped_games": sum(1 for board, length in zip(boards, lengths, strict=True)
+                            if length >= max_plies and board.adjudication() is None),
         "avg_red_score": float(np.mean(red_scores)) if red_scores else 0.0,
         "avg_nodes_per_second": float(np.mean(nodes_per_second)) if nodes_per_second else 0.0,
     }
