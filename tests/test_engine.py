@@ -36,3 +36,17 @@ def test_engine_command_is_parsed_as_argv_without_a_shell():
         "--mode",
         "ucci",
     ]
+
+
+def test_fairy_moves_use_one_based_ranks_including_rank_ten():
+    assert engine_move_to_cc("h10g8", rank_base=1) == "h0g2"
+    assert parse_bestmove_output("info depth 4 score cp 77\nbestmove b3e3", rank_base=1).move.uci() == "b7e7"
+
+
+def test_engine_moves_off_the_board_are_rejected():
+    for text, rank_base in (("a0a1", 1), ("a10a9", 0), ("j1a1", 1), ("a1a", 0)):
+        try:
+            engine_move_to_cc(text, rank_base=rank_base)
+        except ValueError:
+            continue
+        raise AssertionError(f"{text!r} with rank base {rank_base} should be rejected")

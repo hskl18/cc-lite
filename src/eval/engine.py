@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import re
 import shlex
 import subprocess
 import threading
@@ -10,6 +11,10 @@ from dataclasses import dataclass
 from xiangqi.board import BLACK, RED, Move
 
 ENGINE_PIECE_TRANSLATION = str.maketrans({"H": "N", "h": "n", "E": "B", "e": "b"})
+# Pikafish numbers ranks 0-9 from Red's side; Fairy-Stockfish numbers them 1-10
+# and plays chess until its xiangqi variant is selected.
+ENGINE_FLAVORS = {"pikafish": 0, "fairy": 1}
+_ENGINE_MOVE = re.compile(r"([a-i])(\d{1,2})([a-i])(\d{1,2})")
 
 
 @dataclass(frozen=True)
@@ -32,7 +37,7 @@ def score_to_value(score_cp: float | None, scale: float = 1000.0) -> float:
     return max(-1.0, min(1.0, score_cp / scale))
 
 
-def parse_bestmove_output(output: str) -> EngineResult:
+def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
     for line in output.splitlines():
@@ -56,13 +61,20 @@ def parse_bestmove_output(output: str) -> EngineResult:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
-    return EngineResult(move=Move.from_uci(engine_move_to_cc(best)), score_cp=score_cp, raw_output=output)
+    return EngineResult(
+        move=Move.from_uci(engine_move_to_cc(best, rank_base)), score_cp=score_cp, raw_output=output
+    )
 
 
-def engine_move_to_cc(text: str) -> str:
-    if len(text) != 4:
-        raise ValueError(f"Expected four-character engine move, got {text!r}")
-    return text[0] + str(9 - int(text[1])) + text[2] + str(9 - int(text[3]))
+def engine_move_to_cc(text: str, rank_base: int = 0) -> str:
+    match = _ENGINE_MOVE.fullmatch(text)
+    if match is None:
+        raise ValueError(f"Expected an engine move such as h2e2, got {text!r}")
+    from_file, from_rank, to_file, to_rank = match.groups()
+    ranks = [int(from_rank) - rank_base, int(to_rank) - rank_base]
+    if not all(0 <= rank <= 9 for rank in ranks):
+        raise ValueError(f"Engine move {text!r} is off the board for rank base {rank_base}")
+    return f"{from_file}{9 - ranks[0]}{to_file}{9 - ranks[1]}"
 
 
 class UcciEngine:
@@ -73,7 +85,16 @@ class UcciEngine:
     self-play orchestration.
     """
 
-    def __init__(self, command: str, timeout: float = 10.0, init_command: str = "uci"):
+    def __init__(
+        self,
+        command: str,
+        timeout: float = 10.0,
+        init_command: str = "uci",
+        flavor: str = "pikafish",
+    ):
+        if flavor not in ENGINE_FLAVORS:
+            raise ValueError(f"Unknown engine flavor {flavor!r}; expected one of {sorted(ENGINE_FLAVORS)}")
+        self.rank_base = ENGINE_FLAVORS[flavor]
         self.proc = subprocess.Popen(
             command_argv(command),
             shell=False,
@@ -90,6 +111,10 @@ class UcciEngine:
         self.send(init_command)
         ok_prefix = "ucciok" if init_command == "ucci" else "uciok"
         self.read_until((ok_prefix,), timeout)
+        if flavor == "fairy":
+            self.send("setoption name UCI_Variant value xiangqi")
+            self.send("isready")
+            self.read_until(("readyok",), timeout)
 
     def _read_stdout(self) -> None:
         if self.proc.stdout is None:
@@ -121,7 +146,7 @@ class UcciEngine:
         engine_fen = to_engine_fen(fen)
         self.send(f"position fen {engine_fen}")
         self.send(f"go depth {depth}")
-        return parse_bestmove_output(self.read_until(("bestmove",)))
+        return parse_bestmove_output(self.read_until(("bestmove",)), self.rank_base)
 
     def close(self) -> None:
         if self.proc.poll() is not None:

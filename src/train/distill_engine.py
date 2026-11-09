@@ -4,10 +4,12 @@ import argparse
 import json
 import shutil
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import NamedTuple
 
 from data.replay import ReplaySample, write_jsonl
-from eval.engine import UcciEngine, command_argv, score_to_value
+from eval.engine import ENGINE_FLAVORS, UcciEngine, command_argv, score_to_value
 from train.experiment import sha256_file
 from xiangqi.board import Board
 from xiangqi.encoding import MoveCodec
@@ -34,6 +36,39 @@ def _engine_provenance(command: str) -> dict[str, object]:
     }
 
 
+class _LabelSettings(NamedTuple):
+    engine: str
+    timeout: float
+    init_command: str
+    flavor: str
+    threads: int
+    hash_mb: int
+    depth: int
+
+
+def _label_chunk(settings: _LabelSettings, fens: list[str]) -> list[ReplaySample]:
+    engine = UcciEngine(
+        settings.engine, timeout=settings.timeout, init_command=settings.init_command, flavor=settings.flavor
+    )
+    samples: list[ReplaySample] = []
+    try:
+        engine.send(f"setoption name Threads value {settings.threads}")
+        engine.send(f"setoption name Hash value {settings.hash_mb}")
+        engine.send("isready")
+        engine.read_until(("readyok",))
+        for fen in fens:
+            board = Board.from_fen(fen)
+            result = engine.best_move(board.to_fen(), settings.depth)
+            move = result.move
+            if move not in set(board.legal_moves()):
+                raise ValueError(f"Engine returned illegal move {move.uci()} for {board.to_fen()}")
+            value = score_to_value(result.score_cp)
+            samples.append(ReplaySample(fen=board.to_fen(), policy={MoveCodec.encode(move): 1.0}, value=value))
+    finally:
+        engine.close()
+    return samples
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cache optional Pikafish UCI/UCCI labels for distillation.")
     parser.add_argument("--engine", required=True, help="Engine command, e.g. './pikafish'")
@@ -42,13 +77,15 @@ def main() -> None:
     parser.add_argument("--depth", type=int, default=4)
     parser.add_argument("--timeout", type=float, default=10.0)
     parser.add_argument("--init-command", choices=["uci", "ucci"], default="uci")
+    parser.add_argument("--engine-flavor", choices=sorted(ENGINE_FLAVORS), default="pikafish")
+    parser.add_argument("--workers", type=int, default=1, help="Engine processes labeling in parallel")
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--hash-mb", type=int, default=16)
     parser.add_argument("--manifest", help="Defaults to OUTPUT.manifest.json")
     args = parser.parse_args()
 
-    if args.depth <= 0 or args.threads <= 0 or args.hash_mb <= 0:
-        parser.error("--depth, --threads, and --hash-mb must be positive")
+    if args.depth <= 0 or args.threads <= 0 or args.hash_mb <= 0 or args.workers <= 0:
+        parser.error("--depth, --threads, --hash-mb, and --workers must be positive")
 
     positions_path = Path(args.positions).resolve()
     output_path = Path(args.output).resolve()
@@ -63,24 +100,20 @@ def main() -> None:
         if line.strip()
     ]
     engine_provenance = _engine_provenance(args.engine)
-    engine = UcciEngine(args.engine, timeout=args.timeout, init_command=args.init_command)
+    fens = [row["fen"] for row in rows]
+    settings = _LabelSettings(
+        args.engine, args.timeout, args.init_command, args.engine_flavor, args.threads, args.hash_mb, args.depth
+    )
+    # Chunks keep their order, so parallel output matches a single-worker run.
+    chunk_size = max(1, -(-len(fens) // (args.workers * 8)))
+    chunks = [fens[start : start + chunk_size] for start in range(0, len(fens), chunk_size)]
     samples: list[ReplaySample] = []
-    try:
-        engine.send(f"setoption name Threads value {args.threads}")
-        engine.send(f"setoption name Hash value {args.hash_mb}")
-        engine.send("isready")
-        engine.read_until(("readyok",))
-        for row in rows:
-            board = Board.from_fen(row["fen"])
-            result = engine.best_move(board.to_fen(), args.depth)
-            move = result.move
-            legal = set(board.legal_moves())
-            if move not in legal:
-                raise ValueError(f"Engine returned illegal move {move.uci()} for {board.to_fen()}")
-            value = score_to_value(result.score_cp)
-            samples.append(ReplaySample(fen=board.to_fen(), policy={MoveCodec.encode(move): 1.0}, value=value))
-    finally:
-        engine.close()
+    if args.workers == 1:
+        samples = _label_chunk(settings, fens)
+    else:
+        with ProcessPoolExecutor(max_workers=args.workers) as pool:
+            for labeled in pool.map(_label_chunk, [settings] * len(chunks), chunks):
+                samples.extend(labeled)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     count = write_jsonl(output_path, samples)
     manifest = {
@@ -89,6 +122,8 @@ def main() -> None:
         "engine": {
             **engine_provenance,
             "protocol": args.init_command,
+            "flavor": args.engine_flavor,
+            "workers": args.workers,
             "depth": args.depth,
             "threads": args.threads,
             "hash_mb": args.hash_mb,
