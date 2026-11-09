@@ -70,6 +70,14 @@ A pair counts only when both legs reach a terminal result, so a capped leg canno
 Score intervals come from a percentile bootstrap over complete pairs, and the sequential stop uses a Hoeffding confidence sequence with a union bound over repeated looks, so stopping early does not inflate the error rate.
 No checkpoint pair in this repository has yet produced enough terminal pairs for a result.
 
+### Failure found and fixed: seeds that changed nothing
+
+Before the first real comparison, a read of `eval/head_to_head.py` showed that evaluation moves are greedy (temperature 0) with no root noise, so `set_seed` had nothing to act on.
+Seeds 1, 7, and 19 would have replayed the same games from each opening, and the bootstrap would have counted three identical pairs as three independent ones, narrowing the interval for free.
+`eval.sample_plies` now draws each game's first moves from MCTS visit counts, and `head_to_head` refuses a multi-seed run with `sample_plies` of 0.
+The sampling stream is seeded from the pair identifier rather than the bare seed; with the bare seed, an opening and its mirror consumed identical random draws, which would have coupled pairs that the statistics treat as independent.
+Tests check that two seeds play different games and that moves after the sampled plies are greedy.
+
 ## Baseline floor: what an almost untrained agent does
 
 [`evidence/baseline-v1`](evidence/baseline-v1) evaluates the committed debug checkpoint, trained on one 8-ply self-play game, with 50 MCTS simulations per move.

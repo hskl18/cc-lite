@@ -24,11 +24,16 @@ The canonical default seeds are `1`, `7`, and `19`.
 A schedule runs every declared seed for one opening before advancing to the next opening, so early stopping prefixes remain balanced across seeds.
 A publishable comparison must use at least two distinct seeds, while a local smoke run may use one seed if it is labeled as a smoke run.
 
+Evaluation moves are greedy and add no root noise, so a seed changes a game only through `eval.sample_plies`.
+The first `sample_plies` moves of every game are drawn in proportion to MCTS visit counts, and every later move is greedy.
+The sampling stream is seeded from the pair identifier, which names the suite, opening, and seed, so both legs of a pair share it and no two pairs do.
+`head_to_head` refuses a run with more than one seed and `sample_plies` of 0, because every seed would replay the same games and the bootstrap would count the copies as independent pairs.
+
 The following command runs the pinned protocol and writes raw evidence:
 
 ```bash
 python -m eval.head_to_head \
-  --config configs/research_debug.yaml \
+  --config configs/paired_eval.yaml \
   --checkpoint-a path/to/candidate.pt \
   --checkpoint-b path/to/reference.pt \
   --opening-suite configs/openings/paired-v1.json \
@@ -38,8 +43,8 @@ python -m eval.head_to_head \
   --output-dir evidence/my-paired-run
 ```
 
-The debug configuration and its low simulation count are suitable for pipeline verification only.
-They are not suitable for a strength claim.
+`configs/paired_eval.yaml` sets 200 simulations, a 400-ply cap, and 6 sampled plies.
+`configs/research_debug.yaml` and its low simulation count are suitable for one-seed pipeline verification only, not for a strength claim.
 
 ## Result accounting
 

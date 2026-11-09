@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections.abc import Sequence
@@ -68,6 +69,12 @@ def play_match(
     }
 
 
+def pair_rng_seed(pair_id: str) -> int:
+    """Sampling seed for one pair: both legs share it, and no two openings or seeds do."""
+
+    return int.from_bytes(hashlib.sha256(pair_id.encode("utf-8")).digest()[:4], "big")
+
+
 def _play_scheduled_pair(
     scheduled_games: Sequence[Any],
     *,
@@ -75,16 +82,19 @@ def _play_scheduled_pair(
     eval_b: TorchEvaluator,
     simulations: int,
     max_plies: int,
+    sample_plies: int = 0,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for scheduled in scheduled_games:
-        set_seed(scheduled.seed)
+        set_seed(pair_rng_seed(scheduled.pair_id))
         board = Board.from_fen(scheduled.start_fen)
         moves: list[str] = []
         nodes_per_second: list[float] = []
         while len(moves) < max_plies and board.adjudication() is None:
             evaluator = eval_a if board.turn == scheduled.candidate_color else eval_b
-            search = MCTS(evaluator, SearchConfig(simulations=simulations, temperature=0.0))
+            # The first sample_plies moves are drawn from visit counts with this game's seed; later moves are greedy.
+            temperature = 1.0 if len(moves) < sample_plies else 0.0
+            search = MCTS(evaluator, SearchConfig(simulations=simulations, temperature=temperature))
             move, _ = search.run(board)
             nodes_per_second.append(search.last_nodes_per_second)
             moves.append(move.uci())
@@ -144,7 +154,15 @@ def play_paired_match(
     min_seeds: int = 2,
     confidence: float = 0.95,
     superiority_margin: float = 0.0,
+    sample_plies: int = 0,
 ) -> dict[str, Any]:
+    if sample_plies < 0:
+        raise ValueError("sample_plies must not be negative")
+    if sample_plies == 0 and len(set(seeds)) > 1:
+        raise ValueError(
+            "With greedy moves every seed replays the same games, and the bootstrap would count "
+            "the copies as independent pairs; set eval.sample_plies above 0 or use one seed"
+        )
     suite = (
         opening_suite
         if isinstance(opening_suite, OpeningSuite)
@@ -173,6 +191,7 @@ def play_paired_match(
                 eval_b=eval_b,
                 simulations=simulations,
                 max_plies=max_plies,
+                sample_plies=sample_plies,
             )
         )
         stop = sequential_stop_decision(
@@ -246,6 +265,7 @@ def main() -> None:
             min_seeds=args.min_seeds,
             confidence=args.confidence,
             superiority_margin=args.superiority_margin,
+            sample_plies=int(eval_cfg.get("sample_plies", 0)),
         )
         if args.output_dir:
             write_evidence_bundle(

@@ -1,0 +1,11 @@
+# Paired checkpoint comparison on the pinned opening suite.
+# Checkpoints carry their architecture, so only evaluation settings live here.
+# sample_plies draws each game's first moves from MCTS visit counts with that game's seed,
+# so the three seeds play different games instead of three copies of the same ones.
+seed: 1
+device: auto
+eval:
+  simulations: 200
+  max_plies: 400
+  sample_plies: 6
+  seeds: [1, 7, 19]

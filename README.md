@@ -302,7 +302,7 @@ Run the pinned opening suite with paired colors and multiple seeds:
 
 ```bash
 python -m eval.head_to_head \
-  --config configs/research_debug.yaml \
+  --config configs/paired_eval.yaml \
   --checkpoint-a path/to/candidate.pt \
   --checkpoint-b path/to/reference.pt \
   --opening-suite configs/openings/paired-v1.json \
