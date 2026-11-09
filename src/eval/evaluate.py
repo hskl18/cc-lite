@@ -6,7 +6,7 @@ import sys
 
 from eval.adjudication import material_adjudication
 from eval.baselines import material_move, random_move
-from eval.engine import UcciEngine
+from eval.engine import ENGINE_FLAVORS, UcciEngine
 from eval.evidence import summarize_game_records, write_evidence_bundle
 from mcts.search import MCTS, SearchConfig, TorchEvaluator
 from model.checkpoint import load_checkpoint
@@ -33,6 +33,7 @@ def evaluate_checkpoint(
     engine_depth: int = 4,
     engine_timeout: float = 10.0,
     engine_init_command: str = "uci",
+    engine_flavor: str = "pikafish",
 ) -> dict[str, object]:
     device = choose_device(config.get("device", "auto"))
     model, _ = load_checkpoint(checkpoint, map_location=device)
@@ -43,7 +44,9 @@ def evaluate_checkpoint(
     if opponent == "engine":
         if not engine_command:
             raise ValueError("--engine-command is required when --opponent engine")
-        engine = UcciEngine(engine_command, timeout=engine_timeout, init_command=engine_init_command)
+        engine = UcciEngine(
+            engine_command, timeout=engine_timeout, init_command=engine_init_command, flavor=engine_flavor
+        )
     try:
         for game in range(games):
             game_seed = base_seed + game
@@ -119,6 +122,7 @@ def main() -> None:
     parser.add_argument("--engine-depth", type=int, default=4)
     parser.add_argument("--engine-timeout", type=float, default=10.0)
     parser.add_argument("--engine-init-command", choices=["uci", "ucci"], default="uci")
+    parser.add_argument("--engine-flavor", choices=sorted(ENGINE_FLAVORS), default="pikafish")
     parser.add_argument("--games", type=int)
     parser.add_argument("--simulations", type=int)
     parser.add_argument("--max-plies", type=int)
@@ -138,6 +142,7 @@ def main() -> None:
         engine_depth=args.engine_depth,
         engine_timeout=args.engine_timeout,
         engine_init_command=args.engine_init_command,
+        engine_flavor=args.engine_flavor,
     )
     write_evidence_bundle(
         args.output_dir,
