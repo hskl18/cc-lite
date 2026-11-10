@@ -143,13 +143,12 @@ def test_labeling_rejects_a_temperature_that_is_not_finite(tmp_path) -> None:
         assert not (tmp_path / "labels.jsonl").exists()
 
 
-def test_soft_policy_ranks_moves_and_falls_back_to_the_best_move_without_scores() -> None:
+def test_soft_policy_ranks_moves_and_gives_a_losing_mate_no_weight() -> None:
     best, other, losing = (Move.from_uci(text) for text in ("b7e7", "h7e7", "a9a8"))
     policy = soft_policy([(best, 50.0), (other, -50.0), (losing, -100000.0)], 100.0)
     assert policy[MoveCodec.encode(best)] > policy[MoveCodec.encode(other)] > policy[MoveCodec.encode(losing)]
     assert policy[MoveCodec.encode(losing)] < 1e-9
     assert math.isclose(sum(policy.values()), 1.0)
-    assert soft_policy([(best, 50.0), (other, None)], 100.0) == {MoveCodec.encode(best): 1.0}
 
 
 def test_held_out_positions_leave_out_a_training_set(tmp_path) -> None:

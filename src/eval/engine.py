@@ -27,8 +27,9 @@ class EngineResult:
     move: Move
     score_cp: float | None
     raw_output: str
-    # One (first move, score) per MultiPV line from the last report of each line, best first.
-    lines: tuple[tuple[Move, float | None], ...] = ()
+    # With MultiPV, one (first move, exact score) per line from the final depth, best first;
+    # empty for a single line or when that report is incomplete or inconsistent.
+    lines: tuple[tuple[Move, float], ...] = ()
 
 
 def command_argv(command: str) -> list[str]:
@@ -97,10 +98,19 @@ def _parse_score(parts: list[str]) -> float | None:
     return None
 
 
+def _after(parts: list[str], token: str) -> str | None:
+    if token in parts and parts.index(token) + 1 < len(parts):
+        return parts[parts.index(token) + 1]
+    return None
+
+
 def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
-    multipv: dict[int, tuple[str, float | None]] = {}
+    several_lines = False
+    # (depth, line number, first move, score) for every report with an exact score; a bound score
+    # comes from a re-search that a later report supersedes.
+    exact: list[tuple[str | None, int, str, float]] = []
     for line in output.splitlines():
         parts = line.split()
         if not parts:
@@ -108,23 +118,29 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
         score = _parse_score(parts)
         if score is not None:
             score_cp = score
-        # A line counts only with an exact score: bound scores come from a re-search that a later report supersedes.
-        exact = score is not None and "lowerbound" not in parts and "upperbound" not in parts
-        if parts[0] == "info" and exact and "multipv" in parts and "pv" in parts:
-            index = parts.index("multipv")
-            pv = parts.index("pv")
-            if index + 1 < len(parts) and pv + 1 < len(parts) and parts[index + 1].isdigit():
-                multipv[int(parts[index + 1])] = (parts[pv + 1], score)
+        index = _after(parts, "multipv")
+        if parts[0] == "info" and index is not None and index.isdigit():
+            several_lines = several_lines or int(index) > 1
+            move = _after(parts, "pv")
+            if score is not None and move is not None and not {"lowerbound", "upperbound"} & set(parts):
+                exact.append((_after(parts, "depth"), int(index), move, score))
         if parts[0] == "bestmove" and len(parts) >= 2:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
-    if len(multipv) > 1 and 1 in multipv:
-        # With several lines the last score printed can belong to a worse move.
-        score_cp = multipv[1][1]
-    lines = tuple(
-        (Move.from_uci(engine_move_to_cc(move, rank_base)), score) for _, (move, score) in sorted(multipv.items())
-    )
+    lines: tuple[tuple[Move, float], ...] = ()
+    if several_lines:
+        # The last score printed can belong to a worse move, so the value is line 1's exact score.
+        first = [report for report in exact if report[1] == 1]
+        score_cp = first[-1][3] if first else None
+        # Use the last depth with an exact line 1, and only if it is consistent: line 1 is the
+        # move the engine played and no move appears twice. Otherwise callers keep the best move alone.
+        final = {number: (move, score) for depth, number, move, score in exact if first and depth == first[-1][0]}
+        moves = [move for move, _ in final.values()]
+        if first and final[1][0] == best and len(set(moves)) == len(moves):
+            lines = tuple(
+                (Move.from_uci(engine_move_to_cc(move, rank_base)), score) for _, (move, score) in sorted(final.items())
+            )
     return EngineResult(
         move=Move.from_uci(engine_move_to_cc(best, rank_base)), score_cp=score_cp, raw_output=output, lines=lines
     )

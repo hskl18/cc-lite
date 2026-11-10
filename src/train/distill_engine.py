@@ -36,12 +36,10 @@ class _LabelSettings(NamedTuple):
     policy_temperature: float = 100.0
 
 
-def soft_policy(lines: Sequence[tuple[Move, float | None]], temperature_cp: float) -> dict[int, float]:
+def soft_policy(lines: Sequence[tuple[Move, float]], temperature_cp: float) -> dict[int, float]:
     """Softmax over the engine's centipawn scores for its top moves, so the policy target ranks them."""
 
     scores = [score for _, score in lines]
-    if any(score is None for score in scores):
-        return {MoveCodec.encode(lines[0][0]): 1.0}
     best = max(scores)
     weights = [math.exp((score - best) / temperature_cp) for score in scores]
     total = sum(weights)

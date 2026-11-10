@@ -281,9 +281,11 @@ Engine labels are cached so experiments are reproducible and do not depend on qu
 
 By default the policy target is the engine's best move alone.
 With `--multipv K` above 1, the engine reports up to K best moves, and the policy target becomes a softmax over their scores, `exp((score - best) / T)`, where `--policy-temperature` sets `T` in centipawns (default 100).
-Only each line's last exact score counts; reports marked `lowerbound` or `upperbound` are skipped, and if a line has no score the target falls back to the best move alone.
+The lines come from the last depth with an exact score for line 1; reports marked `lowerbound` or `upperbound` are skipped.
+If that report is inconsistent, because line 1 is not the move the engine played or a move appears twice, the target falls back to the best move alone.
 Mate scores count as plus or minus 100,000 centipawns, so two mating moves get equal weight whatever their distance.
-Each line's move and score are kept under `multipv`, so another temperature needs no new search, and the value target comes from the best line.
+Each line's move and score are kept under `multipv`, so another temperature needs no new search.
+The value target comes from line 1's exact score, and is 0 if the engine reported none.
 
 ## Evaluation And Analysis
 
