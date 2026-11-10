@@ -1,8 +1,8 @@
 # distill-v1-long: `distill-v1`'s data, trained three times as long
 
 `train/checkpoint.pt` has the same architecture as [`distill-v1`](../distill-v1) (128 channels, 8 blocks) and was trained on the same 848,307 labels with the same settings, except for 18 epochs instead of 6.
-It tests whether `distill-v1` was undertrained.
-It was not: the longer run fit its training data much more closely, agreed with the engine no more often on held-out positions, and lost the paired comparison with `distill-v1`.
+It tests whether more epochs on that data help.
+Extending this configuration from 6 to 18 epochs did not improve held-out top-1 agreement or the paired result: the longer run fit its training data much more closely, agreed with the engine no more often on held-out positions, and lost the paired comparison with `distill-v1`.
 
 | | distill-v1 | distill-v1-long |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ Training agreement rose by 15 points while held-out agreement did not move, whic
 ## How it was made
 
 [`configs/distill_gpu_long.yaml`](../../configs/distill_gpu_long.yaml) is `configs/distill_gpu.yaml` with `epochs: 18`.
-Training ran from a clean checkout of `b665e96` on the RTX 5070 Ti machine described in `distill-v1` and took 2,991 s, with the GPU in other use for part of that time.
+Training ran from a clean checkout of `b665e96` on the RTX 5070 Ti machine described in `distill-v1`.
 The run read a copy of the config outside the repository with the same SHA-256, `a905f707…`, which is the path in the manifest.
 The labels are `distill-v1`'s, attached to the [v0.3.0 release](https://github.com/hskl18/cc-lite/releases/tag/v0.3.0) as `labels.jsonl.xz`.
 
@@ -33,7 +33,7 @@ The home directory in the training manifest's paths was rewritten to `~/` before
 
 The `random` and `material` bundles and the held-out report were produced on the RTX 5070 Ti machine, and the paired and Pikafish bundles on a Kaggle machine with an NVIDIA T4, all from clean checkouts of `b665e96`; all six validate with `python -m eval.evidence validate`.
 The Kaggle runs used the Pikafish build named in [`evidence/distill-v1`](../distill-v1), checked against its SHA-256 before use, so their manifests record it under `/root/engines/pikafish/`.
-Each manifest records its machine; games on different hardware can break floating-point ties differently.
+The manifests record each run's platform and library versions but not the GPU model, so the machines named here are as reported by whoever ran them; games on different hardware can break floating-point ties differently.
 
 | Bundle | Settings | Result |
 | --- | --- | --- |
