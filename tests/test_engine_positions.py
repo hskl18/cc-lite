@@ -33,6 +33,9 @@ for line in sys.stdin:
     elif command.startswith("go") and multipv > 1:
         print("info depth 1 multipv 1 score cp 50 pv b3e3")
         print("info depth 1 multipv 2 score cp -50 pv h3e3")
+        if multipv > 2:
+            # A king jump that cc-lite's rules reject.
+            print("info depth 1 multipv 3 score cp -90 pv e1e5")
         print("bestmove b3e3", flush=True)
     elif command.startswith("go"):
         move = "b3e3" if variant == "xiangqi" else "e2e4"
@@ -126,6 +129,23 @@ def test_multipv_labels_hold_a_soft_policy_and_each_line_score(tmp_path) -> None
     assert row["value"] == 0.05
     manifest = json.loads(Path(f"{output}.manifest.json").read_text(encoding="utf-8"))
     assert manifest["policy_target"] == {"multipv": 2, "temperature_cp": 100.0}
+
+
+def test_an_illegal_multipv_line_keeps_the_best_move_alone_and_the_run_going(tmp_path) -> None:
+    positions = tmp_path / "positions.jsonl"
+    positions.write_text(json.dumps({"fen": START_FEN}) + "\n", encoding="utf-8")
+    output = tmp_path / "labels.jsonl"
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+    subprocess.run(
+        [sys.executable, "-m", "train.distill_engine", "--engine", fake_engine(tmp_path),
+         "--engine-flavor", "fairy", "--positions", str(positions), "--output", str(output),
+         "--depth", "1", "--multipv", "3"],
+        check=True, env=env, capture_output=True,
+    )
+    row = json.loads(output.read_text(encoding="utf-8"))
+    assert row["policy"] == {str(MoveCodec.encode(Move.from_uci("b7e7"))): 1.0}
+    assert "multipv" not in row
+    assert row["value"] == 0.05
 
 
 def test_labeling_rejects_a_temperature_that_is_not_finite(tmp_path) -> None:

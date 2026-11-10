@@ -77,10 +77,9 @@ def _label_chunk(settings: _LabelSettings, fens: list[str]) -> list[dict[str, ob
                 "value": value,
                 "score_cp": result.score_cp,
             }
-            if settings.multipv > 1 and result.lines:
-                for move, _ in result.lines:
-                    if move not in legal:
-                        raise ValueError(f"Engine returned illegal move {move.uci()} for {board.to_fen()}")
+            # A line the rules profile rejects makes the report unusable as a soft target, like any
+            # other inconsistency, so the label keeps the best move alone instead of stopping the run.
+            if settings.multipv > 1 and result.lines and all(move in legal for move, _ in result.lines):
                 policy = soft_policy(result.lines, settings.policy_temperature)
                 row["policy"] = {str(index): probability for index, probability in policy.items()}
                 # Each line's raw score is kept too, so another temperature needs no new search.
