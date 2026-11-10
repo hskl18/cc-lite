@@ -64,7 +64,7 @@ The score rate awards one point for a win, one half point for a draw, and zero p
 The point estimate is computed across the terminal games in complete color pairs.
 The confidence interval is a percentile bootstrap that resamples complete color pairs with replacement.
 The implementation uses 10,000 bootstrap samples, a fixed bootstrap seed of `0`, and a default confidence level of 95 percent.
-The fixed analysis seed makes summary reconstruction deterministic.
+The fixed analysis seed makes the bootstrap draw the same resamples on every rebuild of the same records, as long as NumPy's random generator stream is unchanged; the resulting floats are compared within the tolerance described under evidence validation.
 
 The Elo difference uses the logistic Elo transform of score rate.
 A Beta one-half continuity correction keeps the estimate finite when every completed game has the same result.
@@ -122,6 +122,7 @@ Partially paired records cannot fall back to unpaired validation.
 The positional comparison covers deterministic game and pair identifiers, pair legs, opening identifiers, starting FENs, seeds, and candidate colors, so skipped, reordered, duplicated, or extra schedule slots fail closed.
 An early-stopped bundle must end on the first complete-pair boundary where the reconstructed sequential rule stops, and its summary must match the reconstructed stop decision and attempt counts.
 Validation also reconstructs the remaining summary fields, verifies artifact hashes and provenance hashes, checks pair invariants, and rejects a terminal score attached to a `max_plies` record.
+Reconstructed summary floats must match within a relative or absolute tolerance of 1e-12, because numpy's math functions can differ in the last bits between processors; integers, booleans, and strings must match exactly.
 The evidence manifest records both checkpoint hashes, the config hash, the opening-suite hash, all evaluation seeds, the source commit, the command line, and the runtime environment.
 
 Do not publish an Elo or strength claim from an incomplete run, a one-seed run, a debug simulation budget, or an invalid evidence bundle.

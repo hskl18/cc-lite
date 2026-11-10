@@ -24,6 +24,8 @@ from xiangqi.board import Board, Move
 
 SCHEMA_VERSION = 1
 ROOT = Path(__file__).resolve().parents[2]
+# Relative and absolute tolerance for summary floats, well above last-bit differences between CPUs.
+FLOAT_TOLERANCE = 1e-12
 PAIRED_RECORD_FIELDS = (
     "pair_id",
     "pair_leg",
@@ -59,8 +61,8 @@ def summarize_game_records(records: Sequence[dict[str, Any]]) -> dict[str, Any]:
         for record in records
         if record.get("avg_nodes_per_second") is not None
     ]
-    # math.fsum is correctly rounded on every Python version; builtin sum() over floats changed
-    # in 3.12, so a summary written on 3.12 failed reconstruction on 3.11.
+    # math.fsum tracks exact partial sums; builtin sum() over floats changed in 3.12, so a
+    # summary written on 3.12 failed reconstruction on 3.11.
     summary = {
         "games": len(records),
         "avg_plies": sum(plies) / len(plies) if plies else 0.0,
@@ -370,6 +372,10 @@ def _json_values_match(expected: Any, actual: Any) -> bool:
         return len(expected) == len(actual) and all(
             _json_values_match(left, right) for left, right in zip(expected, actual, strict=True)
         )
+    if isinstance(expected, float):
+        # numpy picks SIMD or scalar math by CPU, so a float such as a bootstrap Elo bound can
+        # rebuild a few units in the last place away from the machine that recorded it.
+        return math.isclose(expected, actual, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE)
     return bool(expected == actual)
 
 
