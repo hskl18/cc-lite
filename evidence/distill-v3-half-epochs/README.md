@@ -26,8 +26,8 @@ This checkpoint was not played against `distill-v3`; that `distill-v3` scores hi
 
 ```bash
 sed -e 's/precision: bf16/precision: fp16/' -e 's/num_workers: 12/num_workers: 4/' -e 's/epochs: 6/epochs: 3/' \
-  configs/distill_gpu.yaml > distill_t4_3ep.yaml
-python -m train.experiment run --config distill_t4_3ep.yaml --data ~/runs/soft-all.jsonl \
+  configs/distill_gpu.yaml > ~/runs/distill_t4_3ep.yaml
+python -m train.experiment run --config ~/runs/distill_t4_3ep.yaml --data ~/runs/soft-all.jsonl \
   --output-dir ~/runs/distill-v3-half-epochs/train
 python -m eval.head_to_head --config configs/paired_eval.yaml \
   --checkpoint-a evidence/distill-v3-half-epochs/train/checkpoint.pt \

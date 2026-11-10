@@ -143,7 +143,8 @@ Four self-play generations from `distill-v1` scored 18-4-26 against it, with an 
 **What did.** `distill-v3` added 824,481 positions from the same generator with another seed and searched every position for the engine's four best lines, spreading the policy target over them by `exp((score - best) / 100)`.
 It beat `distill-v1` 38-1-9 over 24 pairs, a score rate of 0.802 with an interval of 0.677 to 0.906, though the sequential rule reached no decision within 24 pairs.
 Two ablations separated the changes.
-The soft targets on `distill-v1`'s positions alone scored 0.458 against `distill-v1`, and all the positions at about the same number of optimizer steps scored 0.656 against that ablation, so the new positions carry the gain.
+The soft targets on `distill-v1`'s positions alone scored 0.458 against `distill-v1`, and all the positions at about the same number of optimizer steps scored 0.656 against that ablation, so the new positions helped without the extra compute.
+No run measured the soft targets on all the positions against best-move targets, or `distill-v3` against the second ablation.
 Here held-out agreement moved with the paired results: 26.0 percent for the soft-target ablation, and 27.4 and 29.6 percent for the two checkpoints that beat it.
 Against Pikafish `distill-v3` scored 6.5 of 60 points, within noise of `distill-v2`'s 5.5.
 

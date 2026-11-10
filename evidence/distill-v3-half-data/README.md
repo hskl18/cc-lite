@@ -1,6 +1,6 @@
 # distill-v3-half-data: soft targets on `distill-v1`'s positions only
 
-An ablation of [`distill-v3`](../distill-v3): the same MultiPV 4 soft targets, config, and 6 epochs, trained only on the 848,307 positions `distill-v1` used, so it differs from `distill-v1` in the policy target alone.
+An ablation of [`distill-v3`](../distill-v3): the same MultiPV 4 soft targets, config, and 6 epochs, trained only on the 848,307 positions `distill-v1` used, so its training differs from `distill-v1`'s in the policy target and, like every `distill-v3` checkpoint, in running fp16 on a Kaggle T4 instead of bf16 on the RTX 5070 Ti.
 Its training data is `soft-v1-labels.jsonl` from the v0.5.0 release, recorded in [`../distill-v3/data/soft-v1-labels.manifest.json`](../distill-v3/data/soft-v1-labels.manifest.json); training took 3,241 s on a Kaggle T4 from a clean checkout of `073596b`.
 Records: [`train/manifest.json`](train/manifest.json), [`train/metrics.json`](train/metrics.json), and the held-out report [`../heldout-v1/agreement/distill-v3-half-data.json`](../heldout-v1/agreement/distill-v3-half-data.json).
 

@@ -1,8 +1,8 @@
 # distill-v3: twice the positions, with MultiPV soft targets
 
-`train/checkpoint.pt` has `distill-v1`'s architecture (128 channels, 8 blocks) and training settings, and changes two things: the policy target spreads over the engine's four best moves instead of one, and the data adds 824,481 new positions to `distill-v1`'s 848,307.
+`train/checkpoint.pt` has `distill-v1`'s architecture (128 channels, 8 blocks) and training settings, apart from fp16 instead of bf16 on a T4, and changes two things: the policy target spreads over the engine's four best moves instead of one, and the data adds 824,481 new positions to `distill-v1`'s 848,307.
 It is the first checkpoint here to beat `distill-v1` in a paired comparison: 38 wins, 1 draw, and 9 losses over 24 complete pairs, a score rate of 0.802 with a 95 percent paired-bootstrap interval of 0.677 to 0.906.
-Two ablations in [`distill-v3-half-data`](../distill-v3-half-data) and [`distill-v3-half-epochs`](../distill-v3-half-epochs) separate the two changes: the soft targets alone showed no gain, and the new positions did.
+Two ablations in [`distill-v3-half-data`](../distill-v3-half-data) and [`distill-v3-half-epochs`](../distill-v3-half-epochs) separate the two changes: the soft targets alone showed no gain, and adding the new positions at about the same number of optimizer steps did.
 
 | | distill-v1 | distill-v3 |
 | --- | --- | --- |
@@ -25,9 +25,10 @@ Both were trained on Kaggle from the same commit and config, and both paired com
 | `distill-v3` | 1,672,788 | soft | 19,608 | 29.6 percent | 0.698 (0.615 to 0.792) against `distill-v3-half-data`, 0.802 (0.677 to 0.906) against `distill-v1` |
 
 The soft targets on `distill-v1`'s positions did not beat `distill-v1`.
-Adding the new positions at about the same number of steps beat that ablation, so the positions, not the extra compute, carry the gain.
+Adding the new positions at about the same number of steps beat that ablation, so this gain does not need the extra compute.
 [`distill-v1-long`](../distill-v1-long) already showed that three times the epochs on `distill-v1`'s positions, with best-move targets, did not help.
 `distill-v3` and `distill-v3-half-epochs` were not played against each other, so whether the second 3 epochs added strength is suggested by the table but not measured.
+No run trained best-move targets on all the positions, so whether the soft targets help on the larger data is not measured either.
 Every interval above is a paired-bootstrap interval, and every sequential decision was inconclusive at the 24-pair limit.
 
 ## How it was made
@@ -49,6 +50,7 @@ The engine is the Fairy-Stockfish build described in [`evidence/distill-v1`](../
 ```bash
 export PYTHONPATH=src
 FAIRY=~/engines/fairy/fairy-stockfish_x86-64-avx512
+mkdir -p ~/runs/extra-v1
 { cat ~/runs/distill-v1/positions.jsonl; xz -dc evidence/heldout-v1/positions.jsonl.xz; } > ~/runs/extra-v1/exclude.jsonl
 python -m train.engine_positions --engine "$FAIRY" --engine-flavor fairy --games 12000 --depth 2 \
   --random-move-rate 0.15 --max-plies 160 --seed 21 --workers 14 \
@@ -59,8 +61,8 @@ python -m train.distill_engine --engine "$FAIRY" --engine-flavor fairy --positio
 python -m train.distill_engine --engine "$FAIRY" --engine-flavor fairy --positions ~/runs/extra-v1/positions.jsonl \
   --output ~/runs/extra-v1/labels.jsonl --depth 10 --workers 14 --multipv 4
 cat ~/runs/soft-v1/labels.jsonl ~/runs/extra-v1/labels.jsonl > ~/runs/soft-all.jsonl
-sed -e 's/precision: bf16/precision: fp16/' -e 's/num_workers: 12/num_workers: 4/' configs/distill_gpu.yaml > distill_t4.yaml
-python -m train.experiment run --config distill_t4.yaml --data ~/runs/soft-all.jsonl --output-dir ~/runs/distill-v3/train
+sed -e 's/precision: bf16/precision: fp16/' -e 's/num_workers: 12/num_workers: 4/' configs/distill_gpu.yaml > ~/runs/distill_t4.yaml
+python -m train.experiment run --config ~/runs/distill_t4.yaml --data ~/runs/soft-all.jsonl --output-dir ~/runs/distill-v3/train
 ```
 
 ## What is and is not here

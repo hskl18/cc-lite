@@ -33,7 +33,8 @@ Three attempts to improve on `distill-v1` did not demonstrate a gain, and a four
 [`distill-v1-long`](evidence/distill-v1-long), the same data trained for 18 epochs instead of 6, lost its paired comparison 17-2-29.
 [Four generations of self-play](evidence/selfplay-v1) from `distill-v1` scored 18-4-26 against it, an interval of 0.302 to 0.521 that does not show an improvement.
 [`distill-v3`](evidence/distill-v3) added 824,481 new engine-labeled positions and spread the policy target over the engine's four best moves, and won its paired comparison 38-1-9, a score rate of 0.802 with a 95 percent paired-bootstrap interval of 0.677 to 0.906; the sequential rule was inconclusive at the 24-pair limit.
-Two ablations trace the gain to the new positions, not to the soft targets or the extra training steps.
+In two ablations, the soft targets on `distill-v1`'s positions alone showed no gain, while adding the new positions at about the same number of training steps beat that ablation.
+What the soft targets add on the larger data, and what the extra epochs add, was not measured.
 
 The validator rebuilds each count from the raw games, with the same command for every bundle in the `evidence/distill-*` directories; the generation-4 bundles are a release asset described in [`evidence/selfplay-v1`](evidence/selfplay-v1):
 
