@@ -59,9 +59,17 @@ Any mismatch fails validation, and CI validates every committed evaluation bundl
 ### Failure found and fixed: a summary that validated on only one Python version
 
 The 20-game `baseline-v1/random` bundle validated on Python 3.12 and failed CI on 3.11.
-Python 3.12 changed the builtin `sum()` over floats to compensated summation, so the mean of 20 nodes-per-second values differed in its last bit between versions, and the validator compares summaries exactly.
-PR #6 switched the float means to `math.fsum`, which is correctly rounded on every version and reproduces every committed summary bit for bit.
+Python 3.12 changed the builtin `sum()` over floats to compensated summation, so the mean of 20 nodes-per-second values differed in its last bit between versions, and the validator then compared summaries exactly.
+PR #6 switched the float means to `math.fsum`, whose exact partial sums do not depend on the version's builtin `sum()`.
 CI validates every committed evaluation bundle on both 3.11 and 3.12, which is the check that caught it.
+
+### Failure found and fixed: a summary that validated on only some CPUs
+
+`distill-v1-long/vs-v1`, recorded on a Kaggle machine, passed every CI job on its pull request and then failed one Python 3.12 job on `main` with the same package versions.
+Its Elo interval comes from numpy's `log10` over 10,000 bootstrap samples, and numpy's math functions dispatch on CPU features, so the same version can return different last bits on different processors.
+Rebuilt with the same numpy on an emulated x86 CPU without AVX-512, the interval's upper bound came out as -14.18892726488757 instead of the recorded -14.188927264887571.
+The validator now accepts summary floats within a relative or absolute tolerance of 1e-12 and still compares integers, booleans, and strings exactly.
+`tests/test_evidence.py::test_validator_accepts_last_bit_float_differences_but_not_edits` checks both sides.
 
 ## Paired evaluation and stopping
 

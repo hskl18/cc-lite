@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict
 from pathlib import Path
 
@@ -301,6 +302,59 @@ def test_validator_rejects_summary_that_does_not_match_raw_games(tmp_path) -> No
 
     assert result["valid"] is False
     assert "summary does not match games.jsonl reconstruction" in result["errors"]
+
+
+def test_validator_accepts_last_bit_float_differences_but_not_edits(tmp_path) -> None:
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    config = tmp_path / "config.yaml"
+    config.write_bytes(b"seed: 1\n")
+    run_dir = tmp_path / "run"
+    write_evidence_bundle(
+        run_dir,
+        records=[
+            {
+                "start_fen": START_FEN,
+                "moves": [],
+                "plies": 0,
+                "final_fen": START_FEN,
+                "model_color": "red",
+                "terminal_reason": "max_plies",
+                "terminal_score": None,
+                "material_delta": 0,
+                "material_adjudication": 0.0,
+                "avg_nodes_per_second": 12345.678,
+            }
+        ],
+        checkpoint_path=checkpoint,
+        config_path=config,
+        seed=1,
+        argv=["python", "-m", "eval.evaluate"],
+        device="cpu",
+    )
+    summary_path = run_dir / "summary.json"
+    manifest_path = run_dir / "manifest.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    recorded = summary["avg_nodes_per_second"]
+    assert recorded == 12345.678
+    assert summary["truncation"]["material_score_mean"] == 0.0
+
+    def validate_with(avg_nodes_per_second: float, material_score_mean: float) -> dict:
+        summary["avg_nodes_per_second"] = avg_nodes_per_second
+        summary["truncation"]["material_score_mean"] = material_score_mean
+        summary_path.write_text(json.dumps(summary) + "\n", encoding="utf-8")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["artifacts"]["summary.json"] = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+        manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+        return validate_evidence_bundle(run_dir)
+
+    # Another CPU's numpy can land a few units in the last place away, relative to a large value
+    # or absolute near zero; a difference ten times the tolerance either way is an edit.
+    assert validate_with(math.nextafter(math.nextafter(recorded, math.inf), math.inf), 0.0)["valid"] is True
+    assert validate_with(recorded, 1e-13)["valid"] is True
+    for edited in (validate_with(recorded * (1 + 1e-11), 0.0), validate_with(recorded, 1e-11)):
+        assert edited["valid"] is False
+        assert "summary does not match games.jsonl reconstruction" in edited["errors"]
 
 
 def test_validator_rejects_terminal_score_on_max_plies_record(tmp_path) -> None:
