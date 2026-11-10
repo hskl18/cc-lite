@@ -128,6 +128,21 @@ def test_multipv_labels_hold_a_soft_policy_and_each_line_score(tmp_path) -> None
     assert manifest["policy_target"] == {"multipv": 2, "temperature_cp": 100.0}
 
 
+def test_labeling_rejects_a_temperature_that_is_not_finite(tmp_path) -> None:
+    positions = tmp_path / "positions.jsonl"
+    positions.write_text(json.dumps({"fen": START_FEN}) + "\n", encoding="utf-8")
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+    for temperature in ("nan", "inf"):
+        run = subprocess.run(
+            [sys.executable, "-m", "train.distill_engine", "--engine", fake_engine(tmp_path),
+             "--engine-flavor", "fairy", "--positions", str(positions), "--output", str(tmp_path / "labels.jsonl"),
+             "--multipv", "2", "--policy-temperature", temperature],
+            env=env, capture_output=True, text=True,
+        )
+        assert run.returncode == 2 and "finite" in run.stderr
+        assert not (tmp_path / "labels.jsonl").exists()
+
+
 def test_soft_policy_ranks_moves_and_falls_back_to_the_best_move_without_scores() -> None:
     best, other, losing = (Move.from_uci(text) for text in ("b7e7", "h7e7", "a9a8"))
     policy = soft_policy([(best, 50.0), (other, -50.0), (losing, -100000.0)], 100.0)

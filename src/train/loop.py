@@ -11,6 +11,13 @@ from model.network import PolicyValueNet
 from train.dataset import ReplayDataset
 
 
+def predicts_top_target(pred: torch.Tensor, target_policy: torch.Tensor) -> torch.Tensor:
+    """True where the predicted move has the target's highest probability, so either of two tied moves counts."""
+
+    best = target_policy.amax(dim=1)
+    return (target_policy.gather(1, pred[:, None]).squeeze(1) >= best) & (best > 0)
+
+
 @dataclass
 class TrainStats:
     policy_loss: float
@@ -68,11 +75,10 @@ def train_samples(
             scaler.update()
             batch = x.shape[0]
             pred = logits.detach().argmax(dim=1)
-            target = target_policy.detach().argmax(dim=1)
             total_policy += float(policy_loss.detach().cpu()) * batch
             total_value += float(value_loss.detach().cpu()) * batch
             total_legal += float(legal_mask[torch.arange(batch, device=device), pred].float().sum().cpu())
-            total_target += float((pred == target).float().sum().cpu())
+            total_target += float(predicts_top_target(pred, target_policy.detach()).float().sum().cpu())
             total_seen += batch
     return TrainStats(
         policy_loss=total_policy / total_seen,

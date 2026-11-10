@@ -117,11 +117,13 @@ def main() -> None:
     parser.add_argument("--manifest", help="Defaults to OUTPUT.manifest.json")
     args = parser.parse_args()
 
-    if min(args.depth, args.threads, args.hash_mb, args.workers, args.value_scale, args.multipv,
-           args.policy_temperature) <= 0:
+    scales = (args.value_scale, args.policy_temperature)
+    if min(args.depth, args.threads, args.hash_mb, args.workers, args.multipv, *scales) <= 0 or not all(
+        math.isfinite(scale) for scale in scales
+    ):
         parser.error(
             "--depth, --threads, --hash-mb, --workers, --value-scale, --multipv, and --policy-temperature "
-            "must be positive"
+            "must be positive and finite"
         )
 
     positions_path = Path(args.positions).resolve()

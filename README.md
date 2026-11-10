@@ -280,8 +280,10 @@ The distillation manifest records the exact engine executable hash, any file arg
 Engine labels are cached so experiments are reproducible and do not depend on querying the engine during training.
 
 By default the policy target is the engine's best move alone.
-With `--multipv K` above 1, the engine reports its K best moves, and the policy target becomes a softmax over their scores, `exp((score - best) / T)`, where `--policy-temperature` sets `T` in centipawns (default 100).
-Each line's move and raw score are kept under `multipv`, so another temperature needs no new search, and the value target still comes from the best line.
+With `--multipv K` above 1, the engine reports up to K best moves, and the policy target becomes a softmax over their scores, `exp((score - best) / T)`, where `--policy-temperature` sets `T` in centipawns (default 100).
+Only each line's last exact score counts; reports marked `lowerbound` or `upperbound` are skipped, and if a line has no score the target falls back to the best move alone.
+Mate scores count as plus or minus 100,000 centipawns, so two mating moves get equal weight whatever their distance.
+Each line's move and score are kept under `multipv`, so another temperature needs no new search, and the value target comes from the best line.
 
 ## Evaluation And Analysis
 

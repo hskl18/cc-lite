@@ -49,6 +49,14 @@ def test_masked_agreement_ignores_illegal_top_moves_and_counts_value_signs() -> 
     assert metrics["value_sign_agreement"] == 1.0
 
 
+def test_either_of_two_tied_target_moves_counts_as_agreement() -> None:
+    first, second = sorted(MoveCodec.encode(move) for move in Board.from_fen(START_FEN).legal_moves()[:2])
+    # The oracle predicts the first key, the higher index, which argmax over the target would never pick.
+    samples = [ReplaySample(fen=START_FEN, policy={second: 0.5, first: 0.5}, value=0.0)]
+    metrics = measure_agreement(_Oracle(samples), ReplayDataset(samples), device=torch.device("cpu"))
+    assert metrics["top1_agreement"] == 1.0
+
+
 def test_agreement_runs_on_a_real_network() -> None:
     samples = _samples()
     model = PolicyValueNet(ModelConfig(channels=8, blocks=1))

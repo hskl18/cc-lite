@@ -108,7 +108,9 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
         score = _parse_score(parts)
         if score is not None:
             score_cp = score
-        if parts[0] == "info" and "multipv" in parts and "pv" in parts:
+        # A line counts only with an exact score: bound scores come from a re-search that a later report supersedes.
+        exact = score is not None and "lowerbound" not in parts and "upperbound" not in parts
+        if parts[0] == "info" and exact and "multipv" in parts and "pv" in parts:
             index = parts.index("multipv")
             pv = parts.index("pv")
             if index + 1 < len(parts) and pv + 1 < len(parts) and parts[index + 1].isdigit():
@@ -117,7 +119,7 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
-    if 1 in multipv:
+    if len(multipv) > 1 and 1 in multipv:
         # With several lines the last score printed can belong to a worse move.
         score_cp = multipv[1][1]
     lines = tuple(

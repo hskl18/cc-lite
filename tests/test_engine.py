@@ -44,6 +44,27 @@ def test_multipv_output_keeps_each_line_and_the_best_line_score():
     ]
 
 
+def test_multipv_lines_skip_bound_scores_and_lines_without_a_score():
+    output = "\n".join(
+        [
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 11 multipv 1 score cp 90 lowerbound pv b2e2",
+            "info depth 11 multipv 2 score cp -40 upperbound pv h2e2",
+            "info depth 11 multipv 2 pv h2e2",
+            "bestmove b2e2",
+        ]
+    )
+    result = parse_bestmove_output(output)
+    assert [(move.uci(), score) for move, score in result.lines] == [("b7e7", 35.0), ("h7e7", -5.0)]
+    assert result.score_cp == 35
+
+
+def test_a_single_line_keeps_the_last_score_printed_as_before():
+    output = "info depth 9 multipv 1 score cp 40 pv b2e2\ninfo depth 10 multipv 1 score cp 80\nbestmove b2e2"
+    assert parse_bestmove_output(output).score_cp == 80
+
+
 def test_engine_move_to_cc_flips_ranks():
     assert engine_move_to_cc("c6c5") == "c3c4"
 
