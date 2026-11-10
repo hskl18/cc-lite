@@ -25,27 +25,28 @@ OPPONENTS = (
     ("pikafish-depth-2", "Pikafish\ndepth 2"),
     ("pikafish-depth-4", "Pikafish\ndepth 4"),
 )
-CHECKPOINTS = (("distill-v1", "#4c78a8"), ("distill-v2", "#f58518"))
-WIDTH = 0.38
+CHECKPOINTS = (("distill-v1", "#4c78a8"), ("distill-v2", "#f58518"), ("distill-v1-long", "#54a24b"))
+WIDTH = 0.27
 
 plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
-figure, axis = plt.subplots(figsize=(8.4, 3.4), facecolor="white")
+figure, axis = plt.subplots(figsize=(9.6, 3.4), facecolor="white")
 for index, (checkpoint, color) in enumerate(CHECKPOINTS):
     results = [
         json.loads((ROOT / "evidence" / checkpoint / run / "summary.json").read_text())["terminal"]
         for run, _ in OPPONENTS
     ]
-    offsets = [position + (index - 0.5) * WIDTH for position in range(len(OPPONENTS))]
+    shift = (index - (len(CHECKPOINTS) - 1) / 2) * WIDTH
+    offsets = [position + shift for position in range(len(OPPONENTS))]
     scores = [100 * (result["wins"] + result["draws"] / 2) / result["games"] for result in results]
     bars = axis.bar(offsets, scores, width=WIDTH, label=checkpoint, color=color)
     axis.bar_label(
-        bars, labels=[f"{r['wins']}-{r['draws']}-{r['losses']}" for r in results], fontsize=9
+        bars, labels=[f"{r['wins']}-{r['draws']}-{r['losses']}" for r in results], fontsize=8
     )
 axis.set_xticks(range(len(OPPONENTS)), [label for _, label in OPPONENTS])
 axis.set_ylabel("Score over 20 games")
 axis.set_ylim(0, 112)
 axis.set_yticks([0, 50, 100], ["0%", "50%", "100%"])
-axis.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2)
+axis.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=len(CHECKPOINTS))
 figure.tight_layout()
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 figure.savefig(OUTPUT, dpi=160, metadata={"Software": None})

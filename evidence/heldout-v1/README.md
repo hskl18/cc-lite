@@ -21,11 +21,12 @@ Both data files are committed xz-compressed; their decompressed SHA-256 digests 
 | --- | ---: | ---: | ---: |
 | `distill-v1` | 25.8 percent | 92.0 percent | 93.2 percent |
 | `distill-v2` | 25.8 percent | 92.6 percent | 93.3 percent |
+| `distill-v1-long` | 25.6 percent | 91.6 percent | 93.6 percent |
 
 The labels are Fairy-Stockfish's depth-10 best move and score.
 Sign agreement counts the 22,011 positions whose label is at least 0.1 from zero.
-The reports are in [`agreement/`](agreement), produced from a clean checkout of `070c0fb` with the committed data; they replay no games, unlike the game bundles, and hash the checkpoint, the labels, and the labels manifest.
-The two checkpoints agree with the engine equally often, and the games in [`evidence/distill-v2`](../distill-v2) separate them, so agreement on this set does not rank these two by playing strength.
+The reports are in [`agreement/`](agreement), produced with the committed data from clean checkouts of `070c0fb` for `distill-v1` and `distill-v2` and of `b665e96` for `distill-v1-long`; they replay no games, unlike the game bundles, and hash the checkpoint, the labels, and the labels manifest.
+The three checkpoints agree with the engine about equally often, and the paired games in [`evidence/distill-v2`](../distill-v2) and [`evidence/distill-v1-long`](../distill-v1-long) separate the other two from `distill-v1`, so agreement on this set does not rank these checkpoints by playing strength.
 
 ## Use
 

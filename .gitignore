@@ -21,6 +21,7 @@ data/external/
 !evidence/debug-v1/checkpoint/selfplay.pt
 !evidence/distill-v1/train/checkpoint.pt
 !evidence/distill-v2/train/checkpoint.pt
+!evidence/distill-v1-long/train/checkpoint.pt
 *.pth
 *.ckpt
 *.safetensors
