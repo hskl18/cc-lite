@@ -129,7 +129,8 @@ Distillation works end to end, and the network still plays far below a shallow e
 
 **What has not shown a gain.** `distill-v2` changed two things at once, fewer random moves and `tanh(score / 800)` value targets, and lost the paired comparison with `distill-v1` 14-1-33.
 Four self-play generations from `distill-v1` scored 18-4-26 against it, with an interval of 0.302 to 0.521.
-`distill-v2` matched `distill-v1` on held-out agreement and still lost their games, so agreement on that set did not predict playing strength.
+`distill-v1-long` trained on `distill-v1`'s data for 18 epochs instead of 6: its top move matched the engine's on 39.7 percent of training positions averaged over its epochs, against 24.9 percent over `distill-v1`'s, held-out agreement went from 25.8 to 25.6 percent, and it lost the paired comparison 17-2-29, so these extra epochs did not help.
+`distill-v2` and `distill-v1-long` matched `distill-v1` on held-out agreement and still lost their games, so agreement on that set did not predict playing strength.
 
 ## Search throughput for self-play
 

@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "eval.label_agreement",
+    "--checkpoint",
+    "evidence/distill-v1-long/train/checkpoint.pt",
+    "--labels",
+    "evidence/heldout-v1/labels.jsonl",
+    "--labels-manifest",
+    "evidence/heldout-v1/labels.manifest.json",
+    "--output",
+    "evidence/heldout-v1/agreement/distill-v1-long.json"
+  ],
+  "checkpoint": {
+    "path": "evidence/distill-v1-long/train/checkpoint.pt",
+    "sha256": "75536d538df8a596675471d1ce6214b94f441ea254ee652be1c5b3b8fe362da4"
+  },
+  "environment": {
+    "device": "cuda",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.11.0+cu128"
+  },
+  "kind": "held_out_label_agreement",
+  "labels": {
+    "path": "evidence/heldout-v1/labels.jsonl",
+    "sha256": "314fdf67dc35f03b8ac4d75a7c9cd051d376bc71f3e68ab9cadf9b3fabaa0219"
+  },
+  "labels_manifest": {
+    "path": "evidence/heldout-v1/labels.manifest.json",
+    "sha256": "27b00a56379c6db7445314169a445cbe4dd20b6854367922dc439a3e2d5909aa"
+  },
+  "metrics": {
+    "positions": 24728,
+    "sign_threshold": 0.1,
+    "top1_agreement": 0.25634907796829504,
+    "unmasked_top1_legal": 0.9160870268521514,
+    "value_mse": 0.08357466231345821,
+    "value_sign_agreement": 0.9360774158375358,
+    "value_sign_positions": 22011
+  },
+  "schema_version": 1,
+  "source": {
+    "dirty": false,
+    "git_commit": "b665e96980784988411aa55a90379427c1c51701"
+  }
+}
