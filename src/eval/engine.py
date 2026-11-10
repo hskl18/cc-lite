@@ -107,6 +107,7 @@ def _after(parts: list[str], token: str) -> str | None:
 def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
+    line_one_score = None
     several_lines = False
     # (depth, line number, first move, score) for every report with an exact score; a bound score
     # comes from a re-search that a later report supersedes.
@@ -122,8 +123,11 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
         if parts[0] == "info" and index is not None and index.isdigit():
             several_lines = several_lines or int(index) > 1
             move = _after(parts, "pv")
-            if score is not None and move is not None and not {"lowerbound", "upperbound"} & set(parts):
-                exact.append((_after(parts, "depth"), int(index), move, score))
+            if score is not None and not {"lowerbound", "upperbound"} & set(parts):
+                if int(index) == 1:
+                    line_one_score = score
+                if move is not None:
+                    exact.append((_after(parts, "depth"), int(index), move, score))
         if parts[0] == "bestmove" and len(parts) >= 2:
             best = parts[1]
     if best is None:
@@ -131,8 +135,8 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     lines: tuple[tuple[Move, float], ...] = ()
     if several_lines:
         # The last score printed can belong to a worse move, so the value is line 1's exact score.
+        score_cp = line_one_score
         first = [report for report in exact if report[1] == 1]
-        score_cp = first[-1][3] if first else None
         # Use the last depth with an exact line 1, and only if it is consistent: line 1 is the
         # move the engine played and no move appears twice. Otherwise callers keep the best move alone.
         final = {number: (move, score) for depth, number, move, score in exact if first and depth == first[-1][0]}

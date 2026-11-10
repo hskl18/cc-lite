@@ -74,6 +74,14 @@ def test_multipv_without_an_exact_line_one_has_no_lines_and_no_score():
     assert result.score_cp is None
 
 
+def test_multipv_value_uses_line_one_exact_score_even_without_a_pv():
+    output = "info depth 10 multipv 1 score cp 35\ninfo depth 10 multipv 2 score cp 10 pv h2e2\nbestmove b2e2"
+    result = parse_bestmove_output(output)
+    assert result.score_cp == 35
+    # Line 1's move cannot be checked against the move played, so no soft target is offered.
+    assert result.lines == ()
+
+
 def test_inconsistent_multipv_reports_have_no_lines():
     # Line 1 at the last exact depth is not the move played.
     stale = "\n".join(
