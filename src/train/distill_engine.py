@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import NamedTuple
@@ -15,7 +17,7 @@ from eval.engine import (
     score_to_value,
 )
 from train.experiment import sha256_file
-from xiangqi.board import Board
+from xiangqi.board import Board, Move
 from xiangqi.encoding import MoveCodec
 
 
@@ -30,6 +32,20 @@ class _LabelSettings(NamedTuple):
     value_mapping: str
     value_scale: float
     eval_file: str | None
+    multipv: int = 1
+    policy_temperature: float = 100.0
+
+
+def soft_policy(lines: Sequence[tuple[Move, float | None]], temperature_cp: float) -> dict[int, float]:
+    """Softmax over the engine's centipawn scores for its top moves, so the policy target ranks them."""
+
+    scores = [score for _, score in lines]
+    if any(score is None for score in scores):
+        return {MoveCodec.encode(lines[0][0]): 1.0}
+    best = max(scores)
+    weights = [math.exp((score - best) / temperature_cp) for score in scores]
+    total = sum(weights)
+    return {MoveCodec.encode(move): weight / total for (move, _), weight in zip(lines, weights, strict=True)}
 
 
 def _label_chunk(settings: _LabelSettings, fens: list[str]) -> list[dict[str, object]]:
@@ -44,25 +60,34 @@ def _label_chunk(settings: _LabelSettings, fens: list[str]) -> list[dict[str, ob
     try:
         engine.send(f"setoption name Threads value {settings.threads}")
         engine.send(f"setoption name Hash value {settings.hash_mb}")
+        if settings.multipv > 1:
+            engine.send(f"setoption name MultiPV value {settings.multipv}")
         engine.send("isready")
         engine.read_until(("readyok",))
         for fen in fens:
             board = Board.from_fen(fen)
             engine.new_game()
             result = engine.best_move(board.to_fen(), settings.depth)
-            move = result.move
-            if move not in set(board.legal_moves()):
-                raise ValueError(f"Engine returned illegal move {move.uci()} for {board.to_fen()}")
+            legal = set(board.legal_moves())
+            if result.move not in legal:
+                raise ValueError(f"Engine returned illegal move {result.move.uci()} for {board.to_fen()}")
             value = score_to_value(result.score_cp, settings.value_scale, settings.value_mapping)
             # The raw score is kept, so a later run can remap values without searching again.
-            rows.append(
-                {
-                    "fen": board.to_fen(),
-                    "policy": {str(MoveCodec.encode(move)): 1.0},
-                    "value": value,
-                    "score_cp": result.score_cp,
-                }
-            )
+            row: dict[str, object] = {
+                "fen": board.to_fen(),
+                "policy": {str(MoveCodec.encode(result.move)): 1.0},
+                "value": value,
+                "score_cp": result.score_cp,
+            }
+            if settings.multipv > 1 and result.lines:
+                for move, _ in result.lines:
+                    if move not in legal:
+                        raise ValueError(f"Engine returned illegal move {move.uci()} for {board.to_fen()}")
+                policy = soft_policy(result.lines, settings.policy_temperature)
+                row["policy"] = {str(index): probability for index, probability in policy.items()}
+                # Each line's raw score is kept too, so another temperature needs no new search.
+                row["multipv"] = [[move.uci(), score] for move, score in result.lines]
+            rows.append(row)
     finally:
         engine.close()
     return rows
@@ -83,11 +108,21 @@ def main() -> None:
     parser.add_argument("--engine-eval-file", help="Network file to pin, for engines such as Pikafish")
     parser.add_argument("--value-mapping", choices=VALUE_MAPPINGS, default="linear")
     parser.add_argument("--value-scale", type=float, default=1000.0, help="Centipawns per unit before mapping")
+    parser.add_argument(
+        "--multipv", type=int, default=1, help="Engine lines per position; above 1 the policy target is soft"
+    )
+    parser.add_argument(
+        "--policy-temperature", type=float, default=100.0, help="Centipawns per unit of the soft policy's softmax"
+    )
     parser.add_argument("--manifest", help="Defaults to OUTPUT.manifest.json")
     args = parser.parse_args()
 
-    if min(args.depth, args.threads, args.hash_mb, args.workers, args.value_scale) <= 0:
-        parser.error("--depth, --threads, --hash-mb, --workers, and --value-scale must be positive")
+    if min(args.depth, args.threads, args.hash_mb, args.workers, args.value_scale, args.multipv,
+           args.policy_temperature) <= 0:
+        parser.error(
+            "--depth, --threads, --hash-mb, --workers, --value-scale, --multipv, and --policy-temperature "
+            "must be positive"
+        )
 
     positions_path = Path(args.positions).resolve()
     output_path = Path(args.output).resolve()
@@ -114,6 +149,8 @@ def main() -> None:
         args.value_mapping,
         args.value_scale,
         args.engine_eval_file,
+        args.multipv,
+        args.policy_temperature,
     )
     # Each position starts from a cleared engine and chunks keep their order,
     # so the labels do not depend on the number of workers.
@@ -143,6 +180,7 @@ def main() -> None:
             "timeout_seconds": args.timeout,
         },
         "value_mapping": {"kind": args.value_mapping, "scale_cp": args.value_scale},
+        "policy_target": {"multipv": args.multipv, "temperature_cp": args.policy_temperature},
         "positions": {"path": str(positions_path), "sha256": sha256_file(positions_path)},
         "labels": {"path": str(output_path), "sha256": sha256_file(output_path), "records": count},
         "argv": ["python", "-m", "train.distill_engine", *sys.argv[1:]],

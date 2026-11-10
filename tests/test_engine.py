@@ -23,6 +23,27 @@ def test_parse_bestmove_output_with_mate_score():
     assert score_to_value(result.score_cp) == -1.0
 
 
+def test_multipv_output_keeps_each_line_and_the_best_line_score():
+    output = "\n".join(
+        [
+            "info depth 9 multipv 1 score cp 40 pv b2e2 h9g7",
+            "info depth 9 multipv 2 score cp 10 pv h2e2",
+            "info depth 10 multipv 1 score cp 35 pv b2e2 h9g7",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 10 multipv 3 score mate -4 pv a0a1",
+            "bestmove b2e2",
+        ]
+    )
+    result = parse_bestmove_output(output)
+    assert result.move.uci() == "b7e7"
+    assert result.score_cp == 35
+    assert [(move.uci(), score) for move, score in result.lines] == [
+        ("b7e7", 35.0),
+        ("h7e7", -5.0),
+        ("a9a8", -100000.0),
+    ]
+
+
 def test_engine_move_to_cc_flips_ranks():
     assert engine_move_to_cc("c6c5") == "c3c4"
 

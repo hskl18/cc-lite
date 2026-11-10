@@ -276,8 +276,12 @@ python -m train.distill_engine \
   --hash-mb 16
 ```
 
-The distillation manifest records the exact engine executable hash, any file arguments, positions hash, protocol, depth, thread count, hash size, timeout, command, and generated-label hash.
+The distillation manifest records the exact engine executable hash, any file arguments, positions hash, protocol, depth, thread count, hash size, timeout, value mapping, policy target, command, and generated-label hash.
 Engine labels are cached so experiments are reproducible and do not depend on querying the engine during training.
+
+By default the policy target is the engine's best move alone.
+With `--multipv K` above 1, the engine reports its K best moves, and the policy target becomes a softmax over their scores, `exp((score - best) / T)`, where `--policy-temperature` sets `T` in centipawns (default 100).
+Each line's move and raw score are kept under `multipv`, so another temperature needs no new search, and the value target still comes from the best line.
 
 ## Evaluation And Analysis
 

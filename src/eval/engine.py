@@ -27,6 +27,8 @@ class EngineResult:
     move: Move
     score_cp: float | None
     raw_output: str
+    # One (first move, score) per MultiPV line from the last report of each line, best first.
+    lines: tuple[tuple[Move, float | None], ...] = ()
 
 
 def command_argv(command: str) -> list[str]:
@@ -78,32 +80,51 @@ def engine_provenance(command: str, eval_file: str | None = None) -> dict[str, o
     return record
 
 
+def _parse_score(parts: list[str]) -> float | None:
+    if "score" not in parts:
+        return None
+    idx = parts.index("score")
+    if idx + 2 >= len(parts):
+        return None
+    try:
+        raw_score = float(parts[idx + 2])
+    except ValueError:
+        return None
+    if parts[idx + 1] == "cp":
+        return raw_score
+    if parts[idx + 1] == "mate":
+        return 100000.0 if raw_score > 0 else -100000.0
+    return None
+
+
 def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
+    multipv: dict[int, tuple[str, float | None]] = {}
     for line in output.splitlines():
         parts = line.split()
         if not parts:
             continue
-        if "score" in parts:
-            idx = parts.index("score")
-            if idx + 2 < len(parts):
-                kind = parts[idx + 1]
-                try:
-                    raw_score = float(parts[idx + 2])
-                except ValueError:
-                    raw_score = None
-                if raw_score is not None:
-                    if kind == "cp":
-                        score_cp = raw_score
-                    elif kind == "mate":
-                        score_cp = 100000.0 if raw_score > 0 else -100000.0
+        score = _parse_score(parts)
+        if score is not None:
+            score_cp = score
+        if parts[0] == "info" and "multipv" in parts and "pv" in parts:
+            index = parts.index("multipv")
+            pv = parts.index("pv")
+            if index + 1 < len(parts) and pv + 1 < len(parts) and parts[index + 1].isdigit():
+                multipv[int(parts[index + 1])] = (parts[pv + 1], score)
         if parts[0] == "bestmove" and len(parts) >= 2:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
+    if 1 in multipv:
+        # With several lines the last score printed can belong to a worse move.
+        score_cp = multipv[1][1]
+    lines = tuple(
+        (Move.from_uci(engine_move_to_cc(move, rank_base)), score) for _, (move, score) in sorted(multipv.items())
+    )
     return EngineResult(
-        move=Move.from_uci(engine_move_to_cc(best, rank_base)), score_cp=score_cp, raw_output=output
+        move=Move.from_uci(engine_move_to_cc(best, rank_base)), score_cp=score_cp, raw_output=output, lines=lines
     )
 
 
