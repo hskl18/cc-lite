@@ -1,0 +1,82 @@
+{
+  "avg_nodes_per_second": 311.1124714543233,
+  "avg_plies": 100.58333333333333,
+  "games": 48,
+  "opening_suite": {
+    "positions": 8,
+    "sha256": "91cfc76f29a9f7cf8347e84ca6c90169537fcbb7d644627ce584c2a3cdf2e851",
+    "suite_id": "cc-lite-paired-v1",
+    "version": 1
+  },
+  "paired": {
+    "bootstrap": {
+      "confidence": 0.95,
+      "method": "paired-cluster-percentile",
+      "samples": 10000,
+      "seed": 0
+    },
+    "by_seed": {
+      "1": {
+        "complete_pairs": 8,
+        "score_rate": 0.65625
+      },
+      "19": {
+        "complete_pairs": 8,
+        "score_rate": 0.6875
+      },
+      "7": {
+        "complete_pairs": 8,
+        "score_rate": 0.59375
+      }
+    },
+    "complete_games": 48,
+    "complete_pairs": 24,
+    "distinct_seeds": 3,
+    "draw_rate": 0.041666666666666664,
+    "draw_rate_interval": {
+      "high": 0.10416666666666667,
+      "low": 0.0
+    },
+    "elo_difference": {
+      "estimate": 102.10900204132246,
+      "high": 195.608191207748,
+      "low": 21.298204781290057,
+      "method": "logistic-elo-with-beta-half-continuity-correction"
+    },
+    "incomplete_pairs": 0,
+    "observed_pairs": 24,
+    "score_rate": 0.6458333333333334,
+    "score_rate_interval": {
+      "high": 0.7604166666666666,
+      "low": 0.53125
+    }
+  },
+  "sequential_stop": {
+    "attempted_pairs": 24,
+    "completed_pairs": 24,
+    "confidence_sequence": {
+      "confidence": 0.95,
+      "high": 1.0,
+      "low": 0.17717639996592305,
+      "method": "hoeffding-union-bound"
+    },
+    "decision": "inconclusive",
+    "distinct_seeds": 3,
+    "reason": "maximum_pairs_reached",
+    "score_rate": 0.6458333333333334,
+    "stop": true
+  },
+  "terminal": {
+    "draws": 2,
+    "games": 48,
+    "losses": 16,
+    "wins": 30
+  },
+  "truncation": {
+    "games": 0,
+    "material_ahead": 0,
+    "material_behind": 0,
+    "material_equal": 0,
+    "material_score_mean": 0.0
+  }
+}

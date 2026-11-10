@@ -1,0 +1,64 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.engine_positions",
+    "--engine",
+    "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+    "--engine-flavor",
+    "fairy",
+    "--games",
+    "12000",
+    "--depth",
+    "2",
+    "--random-move-rate",
+    "0.15",
+    "--max-plies",
+    "160",
+    "--seed",
+    "21",
+    "--workers",
+    "14",
+    "--exclude-opening-suite",
+    "configs/openings/paired-v1.json",
+    "--exclude-positions",
+    "~/runs/extra-v1/exclude.jsonl",
+    "--output",
+    "~/runs/extra-v1/positions.jsonl"
+  ],
+  "engine": {
+    "argument_files": [],
+    "command": [
+      "~/engines/fairy/fairy-stockfish_x86-64-avx512"
+    ],
+    "depth": 2,
+    "executable": {
+      "path": "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+      "sha256": "086cc74c515599b1a421c57502ec05a12447230023088ca130731ecf30f47780"
+    },
+    "flavor": "fairy"
+  },
+  "excluded_opening_suite": {
+    "excluded_fens": 8,
+    "path": "~/cc-lite/configs/openings/paired-v1.json",
+    "sha256": "91cfc76f29a9f7cf8347e84ca6c90169537fcbb7d644627ce584c2a3cdf2e851"
+  },
+  "excluded_positions": {
+    "excluded_fens": 873035,
+    "path": "~/runs/extra-v1/exclude.jsonl",
+    "sha256": "c9bdc65e08057912c7c1db9258ac4b821bac64ab3dbe0999d76f30b013892254"
+  },
+  "games": 12000,
+  "illegal_engine_moves": 0,
+  "kind": "engine_game_positions",
+  "max_plies": 160,
+  "positions": {
+    "path": "~/runs/extra-v1/positions.jsonl",
+    "records": 824481,
+    "sha256": "d1d513076ac6010ddd709b340acdcdb51140e9d5215ff63a1fb411f2d4390b45"
+  },
+  "positions_seen": 1002469,
+  "random_move_rate": 0.15,
+  "schema_version": 1,
+  "seed": 21
+}
