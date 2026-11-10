@@ -1,0 +1,67 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "eval.head_to_head",
+    "--config",
+    "configs/paired_eval.yaml",
+    "--checkpoint-a",
+    "/tmp/soft/C/checkpoint.pt",
+    "--checkpoint-b",
+    "/tmp/soft/B/checkpoint.pt",
+    "--opening-suite",
+    "configs/openings/paired-v1.json",
+    "--seeds",
+    "1,7,19",
+    "--min-pairs",
+    "8",
+    "--max-pairs",
+    "24",
+    "--output-dir",
+    "/tmp/soft/C-vs-B"
+  ],
+  "artifacts": {
+    "games.jsonl": "20d544127e540547f6a8801d0d36260253da0d4e69bb099bef60273b0d61e89a",
+    "summary.json": "4d4cfc72974322ea2b8ac935e9d3560990cf6d15b494c832e7ec561dfac2a9da"
+  },
+  "checkpoint": {
+    "path": "evidence/distill-v3/train/checkpoint.pt",
+    "sha256": "74977ba3991d5b74eb6e0ea31f35bf499585bbd0282b32ed071b959aab1e3598"
+  },
+  "config": {
+    "path": "configs/paired_eval.yaml",
+    "sha256": "6b7e9ab7bdb44bb2154739ff4ef84981aed2f0c859357ac07c097fb4836e133b"
+  },
+  "environment": {
+    "device": "cuda",
+    "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+    "python": "3.13.16",
+    "pytorch": "2.11.0+cu130"
+  },
+  "opening_suite": {
+    "path": "configs/openings/paired-v1.json",
+    "sha256": "91cfc76f29a9f7cf8347e84ca6c90169537fcbb7d644627ce584c2a3cdf2e851"
+  },
+  "opponent_checkpoint": {
+    "path": "evidence/distill-v3-half-data/train/checkpoint.pt",
+    "sha256": "ac16e1e2a108cf150e92cafd6d85c2388d8e33b0df3e76fd3f2931c6304dfc83"
+  },
+  "paired_protocol": {
+    "confidence": 0.95,
+    "max_pairs": 24,
+    "min_pairs": 8,
+    "min_seeds": 2,
+    "superiority_margin": 0.0
+  },
+  "schema_version": 1,
+  "seed": 1,
+  "seeds": [
+    1,
+    7,
+    19
+  ],
+  "source": {
+    "dirty": false,
+    "git_commit": "073596b2ba86122f2f1bf10d23d3dacfc402e2b7"
+  }
+}

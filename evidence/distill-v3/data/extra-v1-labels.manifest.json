@@ -1,0 +1,57 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.distill_engine",
+    "--engine",
+    "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+    "--engine-flavor",
+    "fairy",
+    "--positions",
+    "~/runs/extra-v1/positions.jsonl",
+    "--output",
+    "~/runs/extra-v1/labels.jsonl",
+    "--depth",
+    "10",
+    "--workers",
+    "14",
+    "--multipv",
+    "4"
+  ],
+  "engine": {
+    "argument_files": [],
+    "command": [
+      "~/engines/fairy/fairy-stockfish_x86-64-avx512"
+    ],
+    "depth": 10,
+    "executable": {
+      "path": "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+      "sha256": "086cc74c515599b1a421c57502ec05a12447230023088ca130731ecf30f47780"
+    },
+    "flavor": "fairy",
+    "hash_mb": 16,
+    "protocol": "uci",
+    "threads": 1,
+    "timeout_seconds": 10.0,
+    "workers": 14
+  },
+  "kind": "engine_distillation_labels",
+  "labels": {
+    "path": "~/runs/extra-v1/labels.jsonl",
+    "records": 824481,
+    "sha256": "c2814359705aefd28000d967dc648afe9e1881e8c0fa0ee66a342bf72971d18b"
+  },
+  "policy_target": {
+    "multipv": 4,
+    "temperature_cp": 100.0
+  },
+  "positions": {
+    "path": "~/runs/extra-v1/positions.jsonl",
+    "sha256": "d1d513076ac6010ddd709b340acdcdb51140e9d5215ff63a1fb411f2d4390b45"
+  },
+  "schema_version": 1,
+  "value_mapping": {
+    "kind": "linear",
+    "scale_cp": 1000.0
+  }
+}

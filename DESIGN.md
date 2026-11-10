@@ -140,6 +140,13 @@ Four self-play generations from `distill-v1` scored 18-4-26 against it, with an 
 `distill-v1-long` trained on `distill-v1`'s data for 18 epochs instead of 6: its top move matched the engine's on 39.7 percent of training positions averaged over its epochs, against 24.9 percent over `distill-v1`'s, held-out agreement went from 25.8 to 25.6 percent, and it lost the paired comparison 17-2-29, so these extra epochs did not help.
 `distill-v2` and `distill-v1-long` matched `distill-v1` on held-out agreement and still lost their games, so agreement on that set did not predict playing strength.
 
+**What did.** `distill-v3` added 824,481 positions from the same generator with another seed and searched every position for the engine's four best lines, spreading the policy target over them by `exp((score - best) / 100)`.
+It beat `distill-v1` 38-1-9 over 24 pairs, a score rate of 0.802 with an interval of 0.677 to 0.906, though the sequential rule reached no decision within 24 pairs.
+Two ablations separated the changes.
+The soft targets on `distill-v1`'s positions alone scored 0.458 against `distill-v1`, and all the positions at about the same number of optimizer steps scored 0.656 against that ablation, so the new positions carry the gain.
+Here held-out agreement moved with the paired results: 26.0 percent for the soft-target ablation, and 27.4 and 29.6 percent for the two checkpoints that beat it.
+Against Pikafish `distill-v3` scored 6.5 of 60 points, within noise of `distill-v2`'s 5.5.
+
 ## Search throughput for self-play
 
 Self-play is search-bound, and profiling one batched worker on the RTX 5070 Ti machine put 300 of 328 seconds inside `Board.is_in_check`.

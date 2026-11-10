@@ -22,6 +22,9 @@ data/external/
 !evidence/distill-v1/train/checkpoint.pt
 !evidence/distill-v2/train/checkpoint.pt
 !evidence/distill-v1-long/train/checkpoint.pt
+!evidence/distill-v3/train/checkpoint.pt
+!evidence/distill-v3-half-data/train/checkpoint.pt
+!evidence/distill-v3-half-epochs/train/checkpoint.pt
 *.pth
 *.ckpt
 *.safetensors

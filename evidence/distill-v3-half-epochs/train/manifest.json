@@ -1,0 +1,47 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.experiment",
+    "run",
+    "--config",
+    "/kaggle/working/distill_t4_3ep.yaml",
+    "--data",
+    "/tmp/soft/soft-all.jsonl",
+    "--output-dir",
+    "/tmp/soft/D"
+  ],
+  "checkpoint": {
+    "path": "checkpoint.pt",
+    "sha256": "94cd6eb64b1b17037e1ca1ed38e8cbd95690bc18ac67645151f1ee54fcf6aeec"
+  },
+  "config": {
+    "path": "/kaggle/working/distill_t4_3ep.yaml",
+    "sha256": "cdba1c7195a0656d38859a078f04ffed1bb3a992e3359b22f347cf47a5ccb29e"
+  },
+  "data": {
+    "path": "/tmp/soft/soft-all.jsonl",
+    "sha256": "0d10741eda95024b93b5d0a9efe191aa002cb28c60696cbc8c99f840a03e0659"
+  },
+  "engine": null,
+  "environment": {
+    "device": "cuda",
+    "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+    "python": "3.13.16",
+    "pytorch": "2.11.0+cu130"
+  },
+  "experiment": "bounded_supervised_bootstrap",
+  "limits": {
+    "max_records": 2000000
+  },
+  "metrics": {
+    "path": "metrics.json",
+    "sha256": "7a7c1bf1b83686484d09e0ab0cfc06ace44860123e18639610093b4016c31f64"
+  },
+  "schema_version": 1,
+  "seed": 42,
+  "source": {
+    "dirty": false,
+    "git_commit": "073596b2ba86122f2f1bf10d23d3dacfc402e2b7"
+  }
+}

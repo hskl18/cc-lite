@@ -1,0 +1,57 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.distill_engine",
+    "--engine",
+    "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+    "--engine-flavor",
+    "fairy",
+    "--positions",
+    "~/runs/distill-v1/positions.jsonl",
+    "--output",
+    "~/runs/soft-v1/labels.jsonl",
+    "--depth",
+    "10",
+    "--workers",
+    "14",
+    "--multipv",
+    "4"
+  ],
+  "engine": {
+    "argument_files": [],
+    "command": [
+      "~/engines/fairy/fairy-stockfish_x86-64-avx512"
+    ],
+    "depth": 10,
+    "executable": {
+      "path": "~/engines/fairy/fairy-stockfish_x86-64-avx512",
+      "sha256": "086cc74c515599b1a421c57502ec05a12447230023088ca130731ecf30f47780"
+    },
+    "flavor": "fairy",
+    "hash_mb": 16,
+    "protocol": "uci",
+    "threads": 1,
+    "timeout_seconds": 10.0,
+    "workers": 14
+  },
+  "kind": "engine_distillation_labels",
+  "labels": {
+    "path": "~/runs/soft-v1/labels.jsonl",
+    "records": 848307,
+    "sha256": "c38ac8945655302133049764d8bd84847faa5d0a4b6676d06b44ddf35e3f0690"
+  },
+  "policy_target": {
+    "multipv": 4,
+    "temperature_cp": 100.0
+  },
+  "positions": {
+    "path": "~/runs/distill-v1/positions.jsonl",
+    "sha256": "2783ddf76cfd2fa6083e990a512b31c2d47a13185ead3818c3fabd182cec9813"
+  },
+  "schema_version": 1,
+  "value_mapping": {
+    "kind": "linear",
+    "scale_cp": 1000.0
+  }
+}
