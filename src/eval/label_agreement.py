@@ -21,6 +21,7 @@ from eval.evidence import _git_source, sha256_file
 from model.checkpoint import load_checkpoint
 from train.config import choose_device
 from train.dataset import ReplayDataset
+from train.loop import predicts_top_target
 
 
 @torch.no_grad()
@@ -44,7 +45,7 @@ def measure_agreement(
         logits, value = model(x)
         rows = torch.arange(x.shape[0], device=device)
         masked = logits.masked_fill(~legal, float("-inf"))
-        agree += int((masked.argmax(dim=1) == target_policy.argmax(dim=1)).sum())
+        agree += int(predicts_top_target(masked.argmax(dim=1), target_policy).sum())
         unmasked_legal += int(legal[rows, logits.argmax(dim=1)].sum())
         squared_error += float(((value - target_value) ** 2).sum())
         decided = target_value.abs() >= sign_threshold

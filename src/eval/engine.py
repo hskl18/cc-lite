@@ -27,6 +27,9 @@ class EngineResult:
     move: Move
     score_cp: float | None
     raw_output: str
+    # With MultiPV, one (first move, exact score) per line from the final depth, best first;
+    # empty for a single line or when that report is incomplete or inconsistent.
+    lines: tuple[tuple[Move, float], ...] = ()
 
 
 def command_argv(command: str) -> list[str]:
@@ -78,32 +81,75 @@ def engine_provenance(command: str, eval_file: str | None = None) -> dict[str, o
     return record
 
 
+def _parse_score(parts: list[str]) -> float | None:
+    if "score" not in parts:
+        return None
+    idx = parts.index("score")
+    if idx + 2 >= len(parts):
+        return None
+    try:
+        raw_score = float(parts[idx + 2])
+    except ValueError:
+        return None
+    if parts[idx + 1] == "cp":
+        return raw_score
+    if parts[idx + 1] == "mate":
+        return 100000.0 if raw_score > 0 else -100000.0
+    return None
+
+
+def _after(parts: list[str], token: str) -> str | None:
+    if token in parts and parts.index(token) + 1 < len(parts):
+        return parts[parts.index(token) + 1]
+    return None
+
+
 def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
+    line_one_score = None
+    line_one_has_pv = False
+    several_lines = False
+    # (depth, line number, first move, score) for every report with an exact score; a bound score
+    # comes from a re-search that a later report supersedes.
+    exact: list[tuple[str | None, int, str, float]] = []
     for line in output.splitlines():
         parts = line.split()
         if not parts:
             continue
-        if "score" in parts:
-            idx = parts.index("score")
-            if idx + 2 < len(parts):
-                kind = parts[idx + 1]
-                try:
-                    raw_score = float(parts[idx + 2])
-                except ValueError:
-                    raw_score = None
-                if raw_score is not None:
-                    if kind == "cp":
-                        score_cp = raw_score
-                    elif kind == "mate":
-                        score_cp = 100000.0 if raw_score > 0 else -100000.0
+        score = _parse_score(parts)
+        if score is not None:
+            score_cp = score
+        index = _after(parts, "multipv")
+        if parts[0] == "info" and index is not None and index.isdigit():
+            several_lines = several_lines or int(index) > 1
+            move = _after(parts, "pv")
+            if score is not None and not {"lowerbound", "upperbound"} & set(parts):
+                if int(index) == 1:
+                    line_one_score = score
+                    line_one_has_pv = move is not None
+                if move is not None:
+                    exact.append((_after(parts, "depth"), int(index), move, score))
         if parts[0] == "bestmove" and len(parts) >= 2:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
+    lines: tuple[tuple[Move, float], ...] = ()
+    if several_lines:
+        # The last score printed can belong to a worse move, so the value is line 1's exact score.
+        score_cp = line_one_score
+        first = [report for report in exact if report[1] == 1]
+        # Use the last depth with an exact line 1, and only if it is consistent: that report is
+        # also where the value came from, line 1 is the move the engine played, and no move
+        # appears twice. Otherwise callers keep the best move alone.
+        final = {number: (move, score) for depth, number, move, score in exact if first and depth == first[-1][0]}
+        moves = [move for move, _ in final.values()]
+        if first and line_one_has_pv and final[1][0] == best and len(set(moves)) == len(moves):
+            lines = tuple(
+                (Move.from_uci(engine_move_to_cc(move, rank_base)), score) for _, (move, score) in sorted(final.items())
+            )
     return EngineResult(
-        move=Move.from_uci(engine_move_to_cc(best, rank_base)), score_cp=score_cp, raw_output=output
+        move=Move.from_uci(engine_move_to_cc(best, rank_base)), score_cp=score_cp, raw_output=output, lines=lines
     )
 
 

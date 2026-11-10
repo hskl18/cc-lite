@@ -23,6 +23,98 @@ def test_parse_bestmove_output_with_mate_score():
     assert score_to_value(result.score_cp) == -1.0
 
 
+def test_multipv_output_keeps_each_line_and_the_best_line_score():
+    output = "\n".join(
+        [
+            "info depth 9 multipv 1 score cp 40 pv b2e2 h9g7",
+            "info depth 9 multipv 2 score cp 10 pv h2e2",
+            "info depth 10 multipv 1 score cp 35 pv b2e2 h9g7",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 10 multipv 3 score mate -4 pv a0a1",
+            "bestmove b2e2",
+        ]
+    )
+    result = parse_bestmove_output(output)
+    assert result.move.uci() == "b7e7"
+    assert result.score_cp == 35
+    assert [(move.uci(), score) for move, score in result.lines] == [
+        ("b7e7", 35.0),
+        ("h7e7", -5.0),
+        ("a9a8", -100000.0),
+    ]
+
+
+def test_multipv_lines_skip_bound_scores_and_lines_without_a_score():
+    output = "\n".join(
+        [
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 11 multipv 1 score cp 90 lowerbound pv b2e2",
+            "info depth 11 multipv 2 score cp -40 upperbound pv h2e2",
+            "info depth 11 multipv 2 pv h2e2",
+            "bestmove b2e2",
+        ]
+    )
+    result = parse_bestmove_output(output)
+    assert [(move.uci(), score) for move, score in result.lines] == [("b7e7", 35.0), ("h7e7", -5.0)]
+    assert result.score_cp == 35
+
+
+def test_multipv_value_is_line_one_even_when_the_other_line_is_only_a_bound():
+    output = "info depth 10 multipv 1 score cp 35 pv b2e2\ninfo depth 10 multipv 2 score cp -40 upperbound pv h2e2\nbestmove b2e2"
+    result = parse_bestmove_output(output)
+    assert result.score_cp == 35
+    assert [(move.uci(), score) for move, score in result.lines] == [("b7e7", 35.0)]
+
+
+def test_multipv_without_an_exact_line_one_has_no_lines_and_no_score():
+    output = "info depth 10 multipv 1 pv b2e2\ninfo depth 10 multipv 2 score cp 20 pv h2e2\nbestmove b2e2"
+    result = parse_bestmove_output(output)
+    assert result.lines == ()
+    assert result.score_cp is None
+
+
+def test_multipv_value_uses_line_one_exact_score_even_without_a_pv():
+    output = "info depth 10 multipv 1 score cp 35\ninfo depth 10 multipv 2 score cp 10 pv h2e2\nbestmove b2e2"
+    result = parse_bestmove_output(output)
+    assert result.score_cp == 35
+    # Line 1's move cannot be checked against the move played, so no soft target is offered.
+    assert result.lines == ()
+    # A newer score without a pv must not pair with lines from an older depth.
+    newer = "\n".join(
+        [
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 11 multipv 1 score cp 80",
+            "bestmove b2e2",
+        ]
+    )
+    result = parse_bestmove_output(newer)
+    assert result.score_cp == 80
+    assert result.lines == ()
+
+
+def test_inconsistent_multipv_reports_have_no_lines():
+    # Line 1 at the last exact depth is not the move played.
+    stale = "\n".join(
+        [
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 11 multipv 1 score cp 90 lowerbound pv h2e2",
+            "info depth 11 multipv 2 score cp 10 pv b2e2",
+            "bestmove h2e2",
+        ]
+    )
+    assert parse_bestmove_output(stale).lines == ()
+    repeated = "info depth 10 multipv 1 score cp 35 pv b2e2\ninfo depth 10 multipv 2 score cp 10 pv b2e2\nbestmove b2e2"
+    assert parse_bestmove_output(repeated).lines == ()
+
+
+def test_a_single_line_keeps_the_last_score_printed_as_before():
+    output = "info depth 9 multipv 1 score cp 40 pv b2e2\ninfo depth 10 multipv 1 score cp 80\nbestmove b2e2"
+    assert parse_bestmove_output(output).score_cp == 80
+
+
 def test_engine_move_to_cc_flips_ranks():
     assert engine_move_to_cc("c6c5") == "c3c4"
 
