@@ -108,6 +108,7 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
     line_one_score = None
+    line_one_has_pv = False
     several_lines = False
     # (depth, line number, first move, score) for every report with an exact score; a bound score
     # comes from a re-search that a later report supersedes.
@@ -126,6 +127,7 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
             if score is not None and not {"lowerbound", "upperbound"} & set(parts):
                 if int(index) == 1:
                     line_one_score = score
+                    line_one_has_pv = move is not None
                 if move is not None:
                     exact.append((_after(parts, "depth"), int(index), move, score))
         if parts[0] == "bestmove" and len(parts) >= 2:
@@ -137,11 +139,12 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
         # The last score printed can belong to a worse move, so the value is line 1's exact score.
         score_cp = line_one_score
         first = [report for report in exact if report[1] == 1]
-        # Use the last depth with an exact line 1, and only if it is consistent: line 1 is the
-        # move the engine played and no move appears twice. Otherwise callers keep the best move alone.
+        # Use the last depth with an exact line 1, and only if it is consistent: that report is
+        # also where the value came from, line 1 is the move the engine played, and no move
+        # appears twice. Otherwise callers keep the best move alone.
         final = {number: (move, score) for depth, number, move, score in exact if first and depth == first[-1][0]}
         moves = [move for move, _ in final.values()]
-        if first and final[1][0] == best and len(set(moves)) == len(moves):
+        if first and line_one_has_pv and final[1][0] == best and len(set(moves)) == len(moves):
             lines = tuple(
                 (Move.from_uci(engine_move_to_cc(move, rank_base)), score) for _, (move, score) in sorted(final.items())
             )

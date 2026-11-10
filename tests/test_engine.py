@@ -80,6 +80,18 @@ def test_multipv_value_uses_line_one_exact_score_even_without_a_pv():
     assert result.score_cp == 35
     # Line 1's move cannot be checked against the move played, so no soft target is offered.
     assert result.lines == ()
+    # A newer score without a pv must not pair with lines from an older depth.
+    newer = "\n".join(
+        [
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp -5 pv h2e2",
+            "info depth 11 multipv 1 score cp 80",
+            "bestmove b2e2",
+        ]
+    )
+    result = parse_bestmove_output(newer)
+    assert result.score_cp == 80
+    assert result.lines == ()
 
 
 def test_inconsistent_multipv_reports_have_no_lines():
