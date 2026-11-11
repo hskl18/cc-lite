@@ -13,7 +13,7 @@ The first distilled checkpoint clearly beats the scripted baselines and the debu
 - A neural network learns Chinese Chess by imitating a strong engine: Fairy-Stockfish rates millions of positions, and the network learns which moves the engine prefers and who is ahead.
 - To pick a move, a tree search looks ahead with the network, the design AlphaZero uses, at a far smaller scale: the largest network has 9.5 million parameters and trained in 35 minutes on one consumer GPU.
 - Most of the work is measurement: every game is saved move by move, a validator replays it and recomputes the score, and two versions are compared on the same openings with colors swapped.
-- Doubling the engine-labeled data twice, the first time with richer targets, gave a version that beat the one before each time, and a larger network scored more against the Pikafish engine, though its games against the smaller one were inconclusive.
+- Doubling the engine-labeled data and the training steps together, twice, the first time with richer targets, gave a version that beat the one before in paired games each time; a larger network then scored more against the Pikafish engine, though its games against the smaller one were inconclusive.
 - Self-play did not show a gain, and each of the six networks tested against Pikafish at depths 1 to 4 lost most of its games, so this is a careful research setup, not a strong engine.
 
 ## Headline result
