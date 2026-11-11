@@ -1,0 +1,64 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "train.engine_positions",
+    "--engine",
+    "/root/engines/fairy/fairy-stockfish_x86-64-avx2",
+    "--engine-flavor",
+    "fairy",
+    "--games",
+    "24000",
+    "--depth",
+    "2",
+    "--random-move-rate",
+    "0.15",
+    "--max-plies",
+    "160",
+    "--seed",
+    "31",
+    "--workers",
+    "4",
+    "--exclude-opening-suite",
+    "configs/openings/paired-v1.json",
+    "--exclude-positions",
+    "/tmp/v4/exclude.jsonl",
+    "--output",
+    "/kaggle/working/extra-v2/positions.jsonl"
+  ],
+  "engine": {
+    "argument_files": [],
+    "command": [
+      "/root/engines/fairy/fairy-stockfish_x86-64-avx2"
+    ],
+    "depth": 2,
+    "executable": {
+      "path": "/root/engines/fairy/fairy-stockfish_x86-64-avx2",
+      "sha256": "df70c56d5f5d7b7b65aeef0fe12dfd156a1645f44f0e554d26b76dbaf5f2e98e"
+    },
+    "flavor": "fairy"
+  },
+  "excluded_opening_suite": {
+    "excluded_fens": 8,
+    "path": "/tmp/cc-lite/configs/openings/paired-v1.json",
+    "sha256": "91cfc76f29a9f7cf8347e84ca6c90169537fcbb7d644627ce584c2a3cdf2e851"
+  },
+  "excluded_positions": {
+    "excluded_fens": 1697516,
+    "path": "/tmp/v4/exclude.jsonl",
+    "sha256": "4e5a50effdf56c69b4ef9c35996d543949c5b0e8c60eb3eabb75571b9dc83977"
+  },
+  "games": 24000,
+  "illegal_engine_moves": 0,
+  "kind": "engine_game_positions",
+  "max_plies": 160,
+  "positions": {
+    "path": "/kaggle/working/extra-v2/positions.jsonl",
+    "records": 1647885,
+    "sha256": "d5c3f6c6af37294e18bb2ace2e380266e3ccfd5e9f383b89d682625c0a6b2abe"
+  },
+  "positions_seen": 2019344,
+  "random_move_rate": 0.15,
+  "schema_version": 1,
+  "seed": 31
+}

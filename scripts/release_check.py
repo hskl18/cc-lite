@@ -35,6 +35,7 @@ def main() -> None:
         "vs-debug",
         "vs-v1",
         "vs-half-data",
+        "vs-v3",
         "pikafish-depth-1",
         "pikafish-depth-2",
         "pikafish-depth-4",
@@ -48,6 +49,8 @@ def main() -> None:
         "distill-v3",
         "distill-v3-half-data",
         "distill-v3-half-epochs",
+        "distill-v4",
+        "distill-v4-half-epochs",
     )
     for bundle in bundles:
         for opponent in runs:

@@ -25,12 +25,15 @@ Both data files are committed xz-compressed; their decompressed SHA-256 digests 
 | `distill-v3-half-data` | 26.0 percent | 94.4 percent | 93.3 percent |
 | `distill-v3-half-epochs` | 27.4 percent | 94.7 percent | 93.8 percent |
 | `distill-v3` | 29.6 percent | 96.2 percent | 94.0 percent |
+| `distill-v4-half-epochs` | 31.7 percent | 97.2 percent | 91.1 percent |
+| `distill-v4` | 33.6 percent | 98.2 percent | 90.9 percent |
 
 The labels are Fairy-Stockfish's depth-10 best move and score.
 Sign agreement counts the 22,011 positions whose label is at least 0.1 from zero.
-The reports are in [`agreement/`](agreement), produced with the committed data from clean checkouts of `070c0fb` for `distill-v1` and `distill-v2`, of `b665e96` for `distill-v1-long`, and of `073596b` for the three `distill-v3` checkpoints; they replay no games, unlike the game bundles, and hash the checkpoint, the labels, and the labels manifest.
+The reports are in [`agreement/`](agreement), produced with the committed data from clean checkouts of `070c0fb` for `distill-v1` and `distill-v2`, of `b665e96` for `distill-v1-long`, of `073596b` for the three `distill-v3` checkpoints, and of `0b9a2b6` for the two `distill-v4` checkpoints; they replay no games, unlike the game bundles, and hash the checkpoint, the labels, and the labels manifest.
 The first three checkpoints agree with the engine about equally often, and the paired games in [`evidence/distill-v2`](../distill-v2) and [`evidence/distill-v1-long`](../distill-v1-long) separate the other two from `distill-v1`, so agreement on this set does not rank those three by playing strength.
-The `distill-v3` checkpoints did not train on these positions either, because its new positions excluded them, and their agreement moved with their paired results, as [`evidence/distill-v3`](../distill-v3) shows.
+The `distill-v3` and `distill-v4` checkpoints did not train on these positions either, because their new positions excluded them, and their top-1 agreement moved with their paired results, as [`evidence/distill-v3`](../distill-v3) and [`evidence/distill-v4`](../distill-v4) show.
+The `distill-v4` checkpoints' lower value sign agreement comes from their stored BatchNorm statistics rather than their weights, by an exploratory check in [#21](https://github.com/hskl18/cc-lite/issues/21), so value agreement here does not track playing strength either.
 
 ## Use
 

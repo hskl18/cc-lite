@@ -30,11 +30,12 @@ CHECKPOINTS = (
     ("distill-v2", "#f58518"),
     ("distill-v1-long", "#54a24b"),
     ("distill-v3", "#b279a2"),
+    ("distill-v4", "#e45756"),
 )
-WIDTH = 0.21
+WIDTH = 0.17
 
 plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
-figure, axis = plt.subplots(figsize=(12, 3.6), facecolor="white")
+figure, axis = plt.subplots(figsize=(12, 4.2), facecolor="white")
 for index, (checkpoint, color) in enumerate(CHECKPOINTS):
     results = [
         json.loads((ROOT / "evidence" / checkpoint / run / "summary.json").read_text())["terminal"]
@@ -44,12 +45,17 @@ for index, (checkpoint, color) in enumerate(CHECKPOINTS):
     offsets = [position + shift for position in range(len(OPPONENTS))]
     scores = [100 * (result["wins"] + result["draws"] / 2) / result["games"] for result in results]
     bars = axis.bar(offsets, scores, width=WIDTH, label=checkpoint, color=color)
+    # Vertical labels, because five bars per group leave no room for horizontal ones.
     axis.bar_label(
-        bars, labels=[f"{r['wins']}-{r['draws']}-{r['losses']}" for r in results], fontsize=7.5
+        bars,
+        labels=[f"{r['wins']}-{r['draws']}-{r['losses']}" for r in results],
+        fontsize=8,
+        rotation=90,
+        padding=2,
     )
 axis.set_xticks(range(len(OPPONENTS)), [label for _, label in OPPONENTS])
-axis.set_ylabel("Score over 20 games")
-axis.set_ylim(0, 112)
+axis.set_ylabel("Score on finished games")
+axis.set_ylim(0, 132)
 axis.set_yticks([0, 50, 100], ["0%", "50%", "100%"])
 axis.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=len(CHECKPOINTS))
 figure.tight_layout()
