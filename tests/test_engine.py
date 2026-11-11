@@ -110,6 +110,36 @@ def test_inconsistent_multipv_reports_have_no_lines():
     assert parse_bestmove_output(repeated).lines == ()
 
 
+def test_a_slow_search_gets_the_same_lines_as_a_fast_one():
+    # Line 3's search beat line 2, so the engine re-sorted them and marked the line now third,
+    # whose score falls outside the last search window, as a bound.
+    final_block = [
+        "info depth 10 multipv 1 score cp 35 pv b2e2",
+        "info depth 10 multipv 2 score cp 18 pv g3g4",
+        "info depth 10 multipv 3 score cp 15 upperbound pv h2e2",
+    ]
+    fast = "\n".join(["info depth 9 multipv 1 score cp 30 pv b2e2", *final_block, "bestmove b2e2"])
+    # Past 3 seconds a block also follows each line, and lines not yet searched again at this
+    # depth keep older scores, here g3g4's 12 as line 3.
+    slow = "\n".join(
+        [
+            "info depth 9 multipv 1 score cp 30 pv b2e2",
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp 20 pv h2e2",
+            "info depth 10 multipv 1 score cp 35 pv b2e2",
+            "info depth 10 multipv 2 score cp 15 pv h2e2",
+            "info depth 10 multipv 3 score cp 12 pv g3g4",
+            *final_block,
+            "bestmove b2e2",
+        ]
+    )
+    expected = [("b7e7", 35.0), ("g6g5", 18.0)]
+    for output in (fast, slow):
+        result = parse_bestmove_output(output)
+        assert [(move.uci(), score) for move, score in result.lines] == expected
+        assert result.score_cp == 35
+
+
 def test_a_single_line_keeps_the_last_score_printed_as_before():
     output = "info depth 9 multipv 1 score cp 40 pv b2e2\ninfo depth 10 multipv 1 score cp 80\nbestmove b2e2"
     assert parse_bestmove_output(output).score_cp == 80

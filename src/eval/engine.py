@@ -27,8 +27,8 @@ class EngineResult:
     move: Move
     score_cp: float | None
     raw_output: str
-    # With MultiPV, one (first move, exact score) per line from the final depth, best first;
-    # empty for a single line or when that report is incomplete or inconsistent.
+    # With MultiPV, one (first move, exact score) per line from the last report block with an
+    # exact line 1, best first; empty for a single line or when that block is incomplete or inconsistent.
     lines: tuple[tuple[Move, float], ...] = ()
 
 
@@ -107,12 +107,14 @@ def _after(parts: list[str], token: str) -> str | None:
 def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
     best = None
     score_cp = None
-    line_one_score = None
-    line_one_has_pv = False
     several_lines = False
-    # (depth, line number, first move, score) for every report with an exact score; a bound score
-    # comes from a re-search that a later report supersedes.
-    exact: list[tuple[str | None, int, str, float]] = []
+    # MultiPV reports come in blocks, one report per line from line 1 on. Fairy-Stockfish prints a
+    # block when an iteration ends and, once a search has run for 3 seconds, also after each line
+    # within one, where lines not yet searched again keep older scores. So every line comes from
+    # one block, the last whose line 1 has an exact score, and a slow machine gets the same lines
+    # as a fast one. `chosen` is that block's dict, which later reports of the block still fill.
+    block: dict[int, tuple[str | None, str | None, float | None]] = {}
+    chosen: dict[int, tuple[str | None, str | None, float | None]] = {}
     for line in output.splitlines():
         parts = line.split()
         if not parts:
@@ -122,29 +124,33 @@ def parse_bestmove_output(output: str, rank_base: int = 0) -> EngineResult:
             score_cp = score
         index = _after(parts, "multipv")
         if parts[0] == "info" and index is not None and index.isdigit():
-            several_lines = several_lines or int(index) > 1
-            move = _after(parts, "pv")
-            if score is not None and not {"lowerbound", "upperbound"} & set(parts):
-                if int(index) == 1:
-                    line_one_score = score
-                    line_one_has_pv = move is not None
-                if move is not None:
-                    exact.append((_after(parts, "depth"), int(index), move, score))
+            number = int(index)
+            several_lines = several_lines or number > 1
+            # A bound score comes from an unfinished re-search, so it counts as no score.
+            exact = None if {"lowerbound", "upperbound"} & set(parts) else score
+            if number == 1:
+                block = {}
+                if exact is not None:
+                    chosen = block
+            block[number] = (_after(parts, "depth"), _after(parts, "pv"), exact)
         if parts[0] == "bestmove" and len(parts) >= 2:
             best = parts[1]
     if best is None:
         raise RuntimeError(f"No bestmove in engine output: {output}")
     lines: tuple[tuple[Move, float], ...] = ()
     if several_lines:
+        line_one = chosen.get(1)
         # The last score printed can belong to a worse move, so the value is line 1's exact score.
-        score_cp = line_one_score
-        first = [report for report in exact if report[1] == 1]
-        # Use the last depth with an exact line 1, and only if it is consistent: that report is
-        # also where the value came from, line 1 is the move the engine played, and no move
-        # appears twice. Otherwise callers keep the best move alone.
-        final = {number: (move, score) for depth, number, move, score in exact if first and depth == first[-1][0]}
+        score_cp = None if line_one is None else line_one[2]
+        final = {
+            number: (move, score)
+            for number, (depth, move, score) in chosen.items()
+            if line_one is not None and depth == line_one[0] and move is not None and score is not None
+        }
         moves = [move for move, _ in final.values()]
-        if first and line_one_has_pv and final[1][0] == best and len(set(moves)) == len(moves):
+        # Keep the lines only if they are consistent: line 1 is the move the engine played, and no
+        # move appears twice. Otherwise callers keep the best move alone.
+        if 1 in final and final[1][0] == best and len(set(moves)) == len(moves):
             lines = tuple(
                 (Move.from_uci(engine_move_to_cc(move, rank_base)), score) for _, (move, score) in sorted(final.items())
             )
