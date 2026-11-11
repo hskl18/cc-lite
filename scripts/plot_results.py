@@ -31,8 +31,9 @@ CHECKPOINTS = (
     ("distill-v1-long", "#54a24b"),
     ("distill-v3", "#b279a2"),
     ("distill-v4", "#e45756"),
+    ("distill-v4-large", "#72b7b2"),
 )
-WIDTH = 0.17
+WIDTH = 0.14
 
 plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
 figure, axis = plt.subplots(figsize=(12, 4.2), facecolor="white")
@@ -45,7 +46,7 @@ for index, (checkpoint, color) in enumerate(CHECKPOINTS):
     offsets = [position + shift for position in range(len(OPPONENTS))]
     scores = [100 * (result["wins"] + result["draws"] / 2) / result["games"] for result in results]
     bars = axis.bar(offsets, scores, width=WIDTH, label=checkpoint, color=color)
-    # Vertical labels, because five bars per group leave no room for horizontal ones.
+    # Vertical labels, because six bars per group leave no room for horizontal ones.
     axis.bar_label(
         bars,
         labels=[f"{r['wins']}-{r['draws']}-{r['losses']}" for r in results],
