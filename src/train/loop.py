@@ -80,6 +80,9 @@ def train_samples(
             total_legal += float(legal_mask[torch.arange(batch, device=device), pred].float().sum().cpu())
             total_target += float(predicts_top_target(pred, target_policy.detach()).float().sum().cpu())
             total_seen += batch
+    # The running statistics BatchNorm keeps while training made evaluation mode under-report
+    # the value head (issue #21), so recompute them over one pass with the final weights.
+    torch.optim.swa_utils.update_bn(loader, model, device)
     return TrainStats(
         policy_loss=total_policy / total_seen,
         value_loss=total_value / total_seen,
