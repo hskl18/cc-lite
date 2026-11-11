@@ -41,8 +41,10 @@ Positions and the labels of shards 0 to 3 ran on Kaggle CPU machines, which lack
    The exclusion file was those three position files concatenated in that order, each rebuilt from the FENs of its released labels and checked against its manifest; its SHA-256, `4e5a50ef…`, is in [`data/extra-v2-positions.manifest.json`](data/extra-v2-positions.manifest.json).
 2. Labels: the positions were split in file order into eight shards of 205,986 positions, the last 205,983, recorded with their digests in [`data/extra-v2-shards.json`](data/extra-v2-shards.json), and each shard was searched as for `distill-v3`.
    The eight label manifests are in [`data/extra-v2-labels.manifests.json`](data/extra-v2-labels.manifests.json); shards 0 to 3 ran with the default 10-second per-position timeout and shards 4 to 7 with 300 seconds, after one Kaggle shard stopped on a search that took longer than 10 seconds, and the timeout only stops a search, so it changes no label.
-   Kaggle labeled shards 4 to 7 as well, and those labels served only as a cross-check: shard 4 matched the committed digest byte for byte, and shard 5 differed in 2 of 205,986 records, which kept the same best move and score but listed a different number of lines.
-   Fairy-Stockfish prints extra reports once a search runs past 3 seconds, so the likely cause is that these two searches took longer on one machine; it was not confirmed, and [issue #22](https://github.com/hskl18/cc-lite/issues/22) has the details.
+   Kaggle labeled shards 4 to 7 as well, and those labels served only as a cross-check: shard 4 matched the committed digest byte for byte, and shards 5, 6, and 7 each differed in 2 records, which kept the same best move and score but listed a different number of lines.
+   Rerunning two of them on the PC with its CPU throttled, so that the searches ran past 3 seconds, reproduced Kaggle's labels: past 3 seconds Fairy-Stockfish prints extra reports, and the parser then took an older report for a line.
+   [#25](https://github.com/hskl18/cc-lite/pull/25) fixed the parser, and [issue #22](https://github.com/hskl18/cc-lite/issues/22) has the details.
+   Shards 0 to 3 were labeled on Kaggle only, so a few of their records may differ in the same way, about 2 per shard at the rate seen in shards 5 to 7.
 3. Training: `train.experiment` on `distill-v3`'s two label files followed by the eight shards in order, with `distill-v3`'s config for 6 epochs at batch 512 (SHA-256 `464894e1…`: `configs/distill_gpu.yaml` with `precision: fp16` and `num_workers: 4`), from a clean checkout of `0b9a2b6`.
    It ran on the RTX 5070 Ti while the ablation's paired games shared the GPU; [`data/extra-v2-labels.data.json`](data/extra-v2-labels.data.json) has the digests of the concatenated new labels and of the full training file, which is the one in [`train/manifest.json`](train/manifest.json).
    Record: [`train/manifest.json`](train/manifest.json) and [`train/metrics.json`](train/metrics.json).
@@ -69,7 +71,7 @@ python -m train.experiment run --config ~/runs/distill_t4.yaml --data ~/runs/v4/
 ```
 
 `--max-records` lifts the config's 2,000,000-record limit, which would otherwise cut the file short.
-Labeling the positions in one run rather than eight shards gives the same records in the same order, because each position is searched from a cleared engine state, apart from the rare search-time effect above.
+Labeling the positions in one run rather than eight shards gives the same records in the same order, because each position is searched from a cleared engine state; before [#25](https://github.com/hskl18/cc-lite/pull/25) a search that ran past 3 seconds could still change a record, as above.
 
 ## What is and is not here
 

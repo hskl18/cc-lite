@@ -295,8 +295,9 @@ Engine labels are cached so experiments are reproducible and do not depend on qu
 
 By default the policy target is the engine's best move alone.
 With `--multipv K` above 1, the engine reports up to K best moves, and the policy target becomes a softmax over their scores, `exp((score - best) / T)`, where `--policy-temperature` sets `T` in centipawns (default 100).
-The lines come from the last depth with an exact score for line 1; reports marked `lowerbound` or `upperbound` are skipped.
-If that report is inconsistent, because line 1 is not the move the engine played, a move appears twice, or a move is illegal under the rules profile, the target falls back to the best move alone.
+The engine reports its lines in blocks, and every line comes from one block, the last whose line 1 has an exact score; reports marked `lowerbound` or `upperbound` count as missing.
+Once a search runs past 3 seconds, Fairy-Stockfish also prints a block after each line of an iteration, where lines not yet searched again keep older scores, so taking every line from one block gives a slow machine the same lines as a fast one.
+If that block is inconsistent, because line 1 is not the move the engine played, a move appears twice, or a move is illegal under the rules profile, the target falls back to the best move alone.
 An illegal best move still stops the run, as before.
 Mate scores count as plus or minus 100,000 centipawns, so two mating moves get equal weight whatever their distance.
 Each line's move and score are kept under `multipv`, so another temperature needs no new search.
@@ -406,10 +407,9 @@ The test suite covers the pinned rules profile, randomized legal-game reversibil
 ## Next Research Steps
 
 1. Scale engine-labeled positions together with training steps, the change behind both gains so far, and find where the gain flattens; at matched steps, `distill-v4`'s doubling did not separate from `distill-v3`.
-2. Make MultiPV labels independent of search time ([#22](https://github.com/hskl18/cc-lite/issues/22)).
-3. Add separately tested XQF and CBL converters into the validated JSONL ingestion boundary.
-4. Build a larger replay buffer with checkpoint metadata and train/eval dashboards.
-5. Find out why four self-play generations showed no gain over `distill-v1`, and train on more games per generation; distillation labels come from Fairy-Stockfish because of Pikafish's weight license (see `DESIGN.md`).
-6. Add repetition and check-state history planes for models that need access to adjudication context.
-7. Run ablations over channels, blocks, simulations, replay size, and data source, changing one thing at a time; `distill-v2` changed two, and `distill-v3`'s two changes needed two ablations to separate.
-8. Speed up self-play generation, which takes far longer than training on its output.
+2. Add separately tested XQF and CBL converters into the validated JSONL ingestion boundary.
+3. Build a larger replay buffer with checkpoint metadata and train/eval dashboards.
+4. Find out why four self-play generations showed no gain over `distill-v1`, and train on more games per generation; distillation labels come from Fairy-Stockfish because of Pikafish's weight license (see `DESIGN.md`).
+5. Add repetition and check-state history planes for models that need access to adjudication context.
+6. Run ablations over channels, blocks, simulations, replay size, and data source, changing one thing at a time; `distill-v2` changed two, and `distill-v3`'s two changes needed two ablations to separate.
+7. Speed up self-play generation, which takes far longer than training on its output.
