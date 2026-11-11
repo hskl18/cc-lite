@@ -2,6 +2,7 @@ import torch
 
 from data.replay import ReplaySample
 from model.network import ModelConfig, PolicyValueNet
+from train.dataset import ReplayDataset
 from train.loop import train_samples
 from train.self_play import _game_outcome
 from xiangqi.board import BLACK, RED, Board, Move
@@ -26,6 +27,25 @@ def test_training_smoke():
     )
     assert stats.policy_loss > 0
     assert 0.0 <= stats.legal_move_accuracy <= 1.0
+
+
+def test_batchnorm_statistics_match_the_training_data_under_the_final_weights():
+    board = Board.start()
+    samples = [
+        ReplaySample(fen=board.to_fen(), policy={MoveCodec.encode(move): 1.0}, value=0.5)
+        for move in board.legal_moves()[:8]
+    ]
+    model = PolicyValueNet(ModelConfig(channels=16, blocks=1))
+    train_samples(model, samples, device=torch.device("cpu"), batch_size=4, epochs=2, lr=0.01)
+    norm = model.stem[1]
+    inputs = []
+    handle = norm.register_forward_hook(lambda module, args, output: inputs.append(args[0]))
+    model.eval()
+    with torch.no_grad():
+        model(torch.stack([ReplayDataset(samples)[i][0] for i in range(len(samples))]))
+    handle.remove()
+    # Equal batches make the average of batch means the mean over all samples.
+    assert torch.allclose(norm.running_mean, inputs[0].mean(dim=(0, 2, 3)), atol=1e-5)
 
 
 def test_cutoff_does_not_turn_material_advantage_into_self_play_win():

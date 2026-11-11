@@ -34,6 +34,7 @@ The reports are in [`agreement/`](agreement), produced with the committed data f
 The first three checkpoints agree with the engine about equally often, and the paired games in [`evidence/distill-v2`](../distill-v2) and [`evidence/distill-v1-long`](../distill-v1-long) separate the other two from `distill-v1`, so agreement on this set does not rank those three by playing strength.
 The `distill-v3` and `distill-v4` checkpoints did not train on these positions either, because their new positions excluded them, and their top-1 agreement moved with their paired results, as [`evidence/distill-v3`](../distill-v3) and [`evidence/distill-v4`](../distill-v4) show.
 The `distill-v4` checkpoints' lower value sign agreement comes from their stored BatchNorm statistics rather than their weights, by an exploratory check in [#21](https://github.com/hskl18/cc-lite/issues/21), so value agreement here does not track playing strength either.
+Training recomputes those statistics at its end since [#24](https://github.com/hskl18/cc-lite/pull/24), and every checkpoint here was trained before that.
 
 ## Use
 

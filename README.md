@@ -130,6 +130,9 @@ Presets:
 - `tiny`: 4 residual blocks, 64 channels.
 - `small`: 6 residual blocks, 96 channels by default.
 
+Training ends with one more pass over its data that recomputes BatchNorm's running statistics with the final weights.
+Checkpoints trained before [#24](https://github.com/hskl18/cc-lite/pull/24) keep the statistics gathered during training, which make evaluation mode under-report their value head ([#21](https://github.com/hskl18/cc-lite/issues/21)).
+
 ## Setup
 
 ```bash
@@ -403,7 +406,7 @@ The test suite covers the pinned rules profile, randomized legal-game reversibil
 ## Next Research Steps
 
 1. Scale engine-labeled positions together with training steps, the change behind both gains so far, and find where the gain flattens; at matched steps, `distill-v4`'s doubling did not separate from `distill-v3`.
-2. Re-estimate BatchNorm statistics after training, which held-out value agreement suggests ([#21](https://github.com/hskl18/cc-lite/issues/21)), and make MultiPV labels independent of search time ([#22](https://github.com/hskl18/cc-lite/issues/22)).
+2. Make MultiPV labels independent of search time ([#22](https://github.com/hskl18/cc-lite/issues/22)).
 3. Add separately tested XQF and CBL converters into the validated JSONL ingestion boundary.
 4. Build a larger replay buffer with checkpoint metadata and train/eval dashboards.
 5. Find out why four self-play generations showed no gain over `distill-v1`, and train on more games per generation; distillation labels come from Fairy-Stockfish because of Pikafish's weight license (see `DESIGN.md`).
