@@ -23,8 +23,9 @@ The training data is byte for byte `distill-v4`'s, and the config differs from `
 The paired report gives an Elo difference of 65 (-28 to 159) by `logistic-elo-with-beta-half-continuity-correction`.
 
 Each Pikafish game has a counterpart in `distill-v4`'s bundles with the same seed, color, and depth.
-Over those 60 matched games, `distill-v4-large` scored more in 15, less in 4, and the same in 41, counting `distill-v4`'s one capped game as a draw.
-A two-sided sign test on the 19 that differ gives p = 0.019, but it treats the games as independent, and each seed and color plays at all three depths; summing each seed and color's three games instead leaves 10 better, 3 worse, and 7 even, with p = 0.092.
+`distill-v4`'s one game capped at 400 plies has no result, so its pair, seed 18 at depth 1, is left out.
+Over the other 59 matched games, `distill-v4-large` scored more in 14, less in 4, and the same in 41.
+A two-sided sign test on the 18 that differ gives p = 0.031, but it treats the games as independent, and each seed and color plays at all three depths; summing each seed and color's games instead leaves 9 better, 3 worse, and 8 even, with p = 0.146.
 Both are exploratory checks computed from the committed games, not gates in [`docs/evaluation-protocol.md`](../../docs/evaluation-protocol.md), and the two networks' games diverge after their first different move, so the match is by seed and color only.
 
 The larger network did better on held-out agreement and scored more against Pikafish, which suggests that network size limits `distill-v4`, but neither its paired games against `distill-v4` nor the per-seed check above separates the two, and it still lost 42 of its 60 games to Pikafish.
@@ -39,6 +40,7 @@ Records: [`train/manifest.json`](train/manifest.json), [`train/metrics.json`](tr
 
 ```bash
 export PYTHONPATH=src
+mkdir -p ~/runs/v4-large
 xz -dc soft-v1-labels.jsonl.xz extra-v1-labels.jsonl.xz extra-v2-labels.jsonl.xz > ~/runs/v4-large/soft-all-v4.jsonl
 sed -e 's/precision: bf16/precision: fp16/' -e 's/num_workers: 12/num_workers: 4/' \
     -e 's/channels: 128/channels: 192/' -e 's/blocks: 8/blocks: 12/' configs/distill_gpu.yaml > ~/runs/v4-large/distill_large.yaml

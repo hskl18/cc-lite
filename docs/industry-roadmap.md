@@ -93,7 +93,7 @@ Exit criterion:
 
 ## Stage 5: Larger Models And Ablations
 
-Status: started. v0.7.0's `distill-v4-large` grew the network from 128 channels and 8 blocks to 192 and 12 on `distill-v4`'s data, which raised held-out agreement and the score against Pikafish but has not yet beaten `distill-v4` in paired games.
+Status: started. v0.7.0's `distill-v4-large` grew the network from 128 channels and 8 blocks to 192 and 12 on `distill-v4`'s data, which raised held-out agreement and the score against Pikafish, while its paired games against `distill-v4` scored 0.594 with an interval of 0.458 to 0.719, which does not separate the two.
 
 - Larger residual networks after data and throughput justify them.
 - Policy vocabulary alternatives if `90 x 90` becomes a bottleneck.

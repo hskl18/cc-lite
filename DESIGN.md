@@ -155,7 +155,7 @@ Against Pikafish it scored 5.5 of 60 points.
 
 **And with a larger network.** `distill-v4-large` kept `distill-v4`'s data, steps, and settings and grew the network from 128 channels and 8 blocks to 192 and 12, 9.5 million parameters instead of 3.9.
 Held-out top-1 agreement rose to 36.7 percent, and against Pikafish it scored 14 points in 60 games, against `distill-v4`'s 5.5.
-Its paired games against `distill-v4` scored 0.594, an interval of 0.458 to 0.719, and matching its Pikafish games to `distill-v4`'s by seed and color gives a sign test p of 0.092, so neither separates the two.
+Its paired games against `distill-v4` scored 0.594, an interval of 0.458 to 0.719, and matching its Pikafish games to `distill-v4`'s by seed and color, without the one capped game, gives a sign test p of 0.146, so neither separates the two.
 Its value sign agreement, 96.5 percent, did not show `distill-v4`'s drop, although both predate the BatchNorm fix.
 
 ## Search throughput for self-play
