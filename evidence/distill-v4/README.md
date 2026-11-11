@@ -29,7 +29,7 @@ Every interval above is a paired-bootstrap interval, and every sequential decisi
 
 Value sign agreement on the held-out set fell from 94.0 to 90.9 percent while the policy and the paired games improved.
 The value labels are distributed alike in all three label files.
-An exploratory check outside these records, in [issue #21](https://github.com/hskl18/cc-lite/issues/21), traced the drop to the BatchNorm running statistics stored in the checkpoint rather than to the learned weights; re-estimating them did not change play.
+An exploratory check outside these records, in [issue #21](https://github.com/hskl18/cc-lite/issues/21), traced the drop to the BatchNorm running statistics stored in the checkpoint rather than to the learned weights; re-estimating them showed no difference in play over 24 pairs, which does not rule out a small one.
 
 ## How it was made
 
@@ -41,11 +41,11 @@ Positions and the labels of shards 0 to 3 ran on Kaggle CPU machines, which lack
    The exclusion file was those three position files concatenated in that order, each rebuilt from the FENs of its released labels and checked against its manifest; its SHA-256, `4e5a50ef…`, is in [`data/extra-v2-positions.manifest.json`](data/extra-v2-positions.manifest.json).
 2. Labels: the positions were split in file order into eight shards of 205,986 positions, the last 205,983, recorded with their digests in [`data/extra-v2-shards.json`](data/extra-v2-shards.json), and each shard was searched as for `distill-v3`.
    The eight label manifests are in [`data/extra-v2-labels.manifests.json`](data/extra-v2-labels.manifests.json); shards 0 to 3 ran with the default 10-second per-position timeout and shards 4 to 7 with 300 seconds, after one Kaggle shard stopped on a search that took longer than 10 seconds, and the timeout only stops a search, so it changes no label.
-   1,610,860 of the 1,647,885 targets (97.8 percent) spread over two or more moves.
+   1,610,860 of the 1,647,885 targets (97.8 percent) spread over two or more moves, a count the released label file reproduces with the command under "What is and is not here".
    Kaggle labeled shards 4 to 7 as well, and those labels served only as a cross-check: shard 4 matched the committed digest byte for byte, and shard 5 differed in 2 of 205,986 records, which kept the same best move and score but listed a different number of lines.
    Fairy-Stockfish prints extra reports once a search runs past 3 seconds, so the likely cause is that these two searches took longer on one machine; it was not confirmed, and [issue #22](https://github.com/hskl18/cc-lite/issues/22) has the details.
 3. Training: `train.experiment` on `distill-v3`'s two label files followed by the eight shards in order, with `distill-v3`'s config for 6 epochs at batch 512 (SHA-256 `464894e1…`: `configs/distill_gpu.yaml` with `precision: fp16` and `num_workers: 4`), from a clean checkout of `0b9a2b6`.
-   It took 1,739 s on the RTX 5070 Ti, sharing the GPU with the ablation's paired games; [`data/extra-v2-labels.data.json`](data/extra-v2-labels.data.json) has the digests of the concatenated new labels and of the full training file, which is the one in [`train/manifest.json`](train/manifest.json).
+   It ran on the RTX 5070 Ti while the ablation's paired games shared the GPU; [`data/extra-v2-labels.data.json`](data/extra-v2-labels.data.json) has the digests of the concatenated new labels and of the full training file, which is the one in [`train/manifest.json`](train/manifest.json).
    Record: [`train/manifest.json`](train/manifest.json) and [`train/metrics.json`](train/metrics.json).
 
 ```bash
@@ -80,6 +80,7 @@ The new positions file is each label's FEN in order, which reproduces the digest
 
 ```bash
 xz -dc extra-v2-labels.jsonl.xz | python -c 'import json, sys; [print(json.dumps({"fen": json.loads(l)["fen"]})) for l in sys.stdin]' | sha256sum
+xz -dc extra-v2-labels.jsonl.xz | python -c 'import json, sys; print(sum(len(json.loads(l)["policy"]) > 1 for l in sys.stdin))'
 ```
 
 The PC's home directory in recorded paths was rewritten to `~/` before publication, and the Kaggle paths were kept as they were.

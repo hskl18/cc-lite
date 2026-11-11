@@ -150,7 +150,7 @@ Against Pikafish `distill-v3` scored 6.5 of 60 points, within noise of `distill-
 
 **And again, with more steps.** `distill-v4` doubled the positions again with `distill-v3`'s config files and beat `distill-v3` 38-2-8, a score rate of 0.812 with an interval of 0.719 to 0.906.
 This time its matched-step ablation scored 0.594 against `distill-v3`, an interval of 0.469 to 0.719, so the gain is shown only for twice the data with twice the steps.
-Held-out policy agreement kept moving with the games, to 31.7 and 33.6 percent, while value sign agreement fell to 91.1 and 90.9 percent; an exploratory check traced that to stale BatchNorm running statistics, whose re-estimation raised it above `distill-v3`'s without changing play ([#21](https://github.com/hskl18/cc-lite/issues/21)).
+Held-out policy agreement kept moving with the games, to 31.7 and 33.6 percent, while value sign agreement fell to 91.1 and 90.9 percent; an exploratory check traced that to stale BatchNorm running statistics, whose re-estimation raised it above `distill-v3`'s with no difference in play detected over 24 pairs ([#21](https://github.com/hskl18/cc-lite/issues/21)).
 Against Pikafish it scored 5.5 of 60 points.
 
 ## Search throughput for self-play

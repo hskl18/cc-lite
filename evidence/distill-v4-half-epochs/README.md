@@ -3,7 +3,7 @@
 An ablation of [`distill-v4`](../distill-v4): the same 3,320,673 positions, MultiPV 4 soft targets, and config, trained for 3 epochs instead of 6.
 That is 19,458 optimizer steps, within 1 percent of the 19,608 of [`distill-v3`](../distill-v3), so the two differ in the positions they saw and hardly at all in training compute.
 They differ in GPU as well: the config file is byte for byte `distill-v3`'s 3-epoch variant (SHA-256 `cdba1c71…`), but this run used the RTX 5070 Ti and `distill-v3` a Kaggle T4.
-Its training data is the file in [`train/manifest.json`](train/manifest.json), built as described in `distill-v4`; training took 693 s from a clean checkout of `0b9a2b6`.
+Its training data is the file in [`train/manifest.json`](train/manifest.json), built as described in `distill-v4`, and training ran from a clean checkout of `0b9a2b6`.
 Records: [`train/manifest.json`](train/manifest.json), [`train/metrics.json`](train/metrics.json), and the held-out report [`../heldout-v1/agreement/distill-v4-half-epochs.json`](../heldout-v1/agreement/distill-v4-half-epochs.json).
 
 | | distill-v3 | distill-v4-half-epochs | distill-v4 |

@@ -54,7 +54,7 @@ for index, (checkpoint, color) in enumerate(CHECKPOINTS):
         padding=2,
     )
 axis.set_xticks(range(len(OPPONENTS)), [label for _, label in OPPONENTS])
-axis.set_ylabel("Score over 20 games")
+axis.set_ylabel("Score on finished games")
 axis.set_ylim(0, 132)
 axis.set_yticks([0, 50, 100], ["0%", "50%", "100%"])
 axis.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=len(CHECKPOINTS))

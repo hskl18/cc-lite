@@ -24,9 +24,9 @@ The references are scripted movers and an almost untrained network, so these res
 
 Against a real engine it does not.
 
-![Score over 20 games for distill-v1, distill-v2, distill-v1-long, distill-v3, and distill-v4: all near 100 percent against the scripted movers, at most 25 percent against Pikafish at depth 1, at most 17.5 percent at depth 2, and at most 2.5 percent at depth 4.](docs/media/results.png)
+![Score on finished games for distill-v1, distill-v2, distill-v1-long, distill-v3, and distill-v4: all near 100 percent against the scripted movers, at most 25 percent against Pikafish at depth 1, at most 17.5 percent at depth 2, and at most 2.5 percent at depth 4.](docs/media/results.png)
 
-*Wins-draws-losses from the committed bundles. The scripted movers used 50 simulations on CPU and Pikafish games used 200 on the GPU; `distill-v4`'s depth-1 score is over the 19 games that ended before the 400-ply cap. `uv run scripts/plot_results.py` redraws it.*
+*Wins-draws-losses from the committed bundles. The scripted movers used 50 simulations on CPU and Pikafish games used 200 on the GPU; every score is over 20 games except `distill-v4`'s at Pikafish depth 1, over the 19 that ended before the 400-ply cap. `uv run scripts/plot_results.py` redraws it.*
 
 Three attempts to improve on `distill-v1` did not demonstrate a gain, and a fourth did.
 [`distill-v2`](evidence/distill-v2), with fewer random moves and smoother value targets, lost their paired comparison 14-1-33.
