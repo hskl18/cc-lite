@@ -1,0 +1,65 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "eval.evaluate",
+    "--config",
+    "configs/engine_eval.yaml",
+    "--checkpoint",
+    "~/runs/v4-large/train/checkpoint.pt",
+    "--opponent",
+    "engine",
+    "--engine-command",
+    "~/engines/pikafish/Pikafish-Linux-x86-64-universal",
+    "--engine-flavor",
+    "pikafish",
+    "--engine-eval-file",
+    "~/engines/pikafish/pikafish.nnue",
+    "--engine-depth",
+    "2",
+    "--output-dir",
+    "~/runs/v4-large/pikafish-depth-2"
+  ],
+  "artifacts": {
+    "games.jsonl": "f87f5ce9db70170992e15848a85dce69486d3d6c99e7a164e999a877fc5142d0",
+    "summary.json": "3b34d86a7b79f28e0b0ccf4ffbff2d6870e1af1874704ff412c0610969d65164"
+  },
+  "checkpoint": {
+    "path": "evidence/distill-v4-large/train/checkpoint.pt",
+    "sha256": "05927ccd874c4d97588ba7d06266fda9ba17700d436fdc03ff6844a0d61d0dff"
+  },
+  "config": {
+    "path": "configs/engine_eval.yaml",
+    "sha256": "993a3971a73a644b971d6a669923cacb2b4f522ac05d311b35a2dca80f77c32c"
+  },
+  "environment": {
+    "device": "cuda",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.11.0+cu128"
+  },
+  "opponent_engine": {
+    "argument_files": [],
+    "command": [
+      "~/engines/pikafish/Pikafish-Linux-x86-64-universal"
+    ],
+    "depth": 2,
+    "eval_file": {
+      "path": "~/engines/pikafish/pikafish.nnue",
+      "sha256": "7d13d73569a9b571ba0eb20cf1596247bc2a42738967e61afef6482b231e900e"
+    },
+    "executable": {
+      "path": "~/engines/pikafish/Pikafish-Linux-x86-64-universal",
+      "sha256": "727828293830de8082a80b224bf47b32700c2d1a441908ea11b3c9197178c20c"
+    },
+    "flavor": "pikafish",
+    "protocol": "uci",
+    "sees_game_history": true
+  },
+  "schema_version": 1,
+  "seed": 1,
+  "source": {
+    "dirty": false,
+    "git_commit": "4eee344fa11261b70a0cf8153f297d2fdee686a7"
+  }
+}

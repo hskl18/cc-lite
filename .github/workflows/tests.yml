@@ -67,6 +67,12 @@ jobs:
           python -m eval.evidence validate --run-dir evidence/distill-v4/pikafish-depth-2
           python -m eval.evidence validate --run-dir evidence/distill-v4/pikafish-depth-4
           python -m eval.evidence validate --run-dir evidence/distill-v4-half-epochs/vs-v3
+          python -m eval.evidence validate --run-dir evidence/distill-v4-large/random
+          python -m eval.evidence validate --run-dir evidence/distill-v4-large/material
+          python -m eval.evidence validate --run-dir evidence/distill-v4-large/vs-v4
+          python -m eval.evidence validate --run-dir evidence/distill-v4-large/pikafish-depth-1
+          python -m eval.evidence validate --run-dir evidence/distill-v4-large/pikafish-depth-2
+          python -m eval.evidence validate --run-dir evidence/distill-v4-large/pikafish-depth-4
       - name: Build and inspect package
         if: matrix.python-version == '3.12'
         run: python scripts/release_check.py

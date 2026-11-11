@@ -153,6 +153,11 @@ This time its matched-step ablation scored 0.594 against `distill-v3`, an interv
 Held-out policy agreement kept moving with the games, to 31.7 and 33.6 percent, while value sign agreement fell to 91.1 and 90.9 percent; an exploratory check traced that to stale BatchNorm running statistics, whose re-estimation raised it above `distill-v3`'s with no difference in play detected over 24 pairs ([#21](https://github.com/hskl18/cc-lite/issues/21)).
 Against Pikafish it scored 5.5 of 60 points.
 
+**And with a larger network.** `distill-v4-large` kept `distill-v4`'s data, steps, and settings and grew the network from 128 channels and 8 blocks to 192 and 12, 9.5 million parameters instead of 3.9.
+Held-out top-1 agreement rose to 36.7 percent, and against Pikafish it scored 14 of 60 points; game by game against `distill-v4`'s Pikafish games with the same seed and color it scored more in 15 and less in 4, a sign test p of 0.019.
+Its paired games against `distill-v4` scored 0.594, an interval of 0.458 to 0.719, so the gain shows against the engine and on held-out positions but not yet head to head.
+Its value sign agreement, 96.5 percent, did not show `distill-v4`'s drop, although both predate the BatchNorm fix.
+
 ## Search throughput for self-play
 
 Self-play is search-bound, and profiling one batched worker on the RTX 5070 Ti machine put 300 of 328 seconds inside `Board.is_in_check`.
@@ -166,5 +171,5 @@ MCTS is now a generator that yields each board it needs evaluated, so `train.sel
 ## Known limits
 
 - The repetition rule does not classify long chases, so some tournament outcomes differ.
-- No checkpoint here has scored above 25 percent against Pikafish, even at depth 1, and the engine matches use 20 games per setting, so differences between checkpoints at this level are noise-sized.
+- No checkpoint here has scored above 45 percent against Pikafish, even at depth 1, and the engine matches use 20 games per setting, so most differences between checkpoints at this level are noise-sized; `distill-v4-large`'s over `distill-v4`, compared game by game, is the one so far that a sign test separates.
 - Torch inference on different hardware or library versions can change floating-point ties, so a rerun elsewhere may choose different moves; the committed raw games remain the source of truth.

@@ -50,7 +50,8 @@ Exit criterion:
 
 Status: started. v0.3.0 distills Fairy-Stockfish labels into a checkpoint that beats both scripted baselines, and v0.4.0 adds low-depth Pikafish evaluation, where its two distilled checkpoints lost 112 of 120 games; a third, `distill-v1-long`, lost 58 of 60.
 v0.5.0's `distill-v3`, trained on twice the positions with MultiPV soft targets, beat `distill-v1` 38-1-9 in paired games but lost 51 of 60 to Pikafish.
-v0.6.0's `distill-v4`, on twice `distill-v3`'s positions, beat `distill-v3` 38-2-8 but lost 52 of 60 to Pikafish, and record converters remain.
+v0.6.0's `distill-v4`, on twice `distill-v3`'s positions, beat `distill-v3` 38-2-8 but lost 52 of 60 to Pikafish.
+v0.7.0's `distill-v4-large`, the same data in a 192-channel, 12-block network, scored 14 of 60 points against Pikafish and lost 42, and record converters remain.
 
 - Add converters for public Xiangqi records into the normalized JSONL format.
 - Cache engine labels for policy and value distillation, from Fairy-Stockfish with a CC0 network, because Pikafish's weight license would bind derived checkpoints.
@@ -92,7 +93,7 @@ Exit criterion:
 
 ## Stage 5: Larger Models And Ablations
 
-Status: planned.
+Status: started. v0.7.0's `distill-v4-large` grew the network from 128 channels and 8 blocks to 192 and 12 on `distill-v4`'s data, which raised held-out agreement and the score against Pikafish but has not yet beaten `distill-v4` in paired games.
 
 - Larger residual networks after data and throughput justify them.
 - Policy vocabulary alternatives if `90 x 90` becomes a bottleneck.
