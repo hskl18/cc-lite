@@ -36,7 +36,7 @@ The first three checkpoints agree with the engine about equally often, and the p
 The `distill-v3` and `distill-v4` checkpoints did not train on these positions either, because their new positions excluded them, and their top-1 agreement moved with their paired results, as [`evidence/distill-v3`](../distill-v3) and [`evidence/distill-v4`](../distill-v4) show.
 [`distill-v4-large`](../distill-v4-large)'s rose with its results against Pikafish, while its paired games against `distill-v4` did not separate the two.
 The lower value sign agreement of `distill-v4` and `distill-v4-half-epochs` comes from their stored BatchNorm statistics rather than their weights, by an exploratory check in [#21](https://github.com/hskl18/cc-lite/issues/21), so value agreement here does not track playing strength either.
-Training recomputes those statistics at its end since [#24](https://github.com/hskl18/cc-lite/pull/24), and every checkpoint here was trained before that; `distill-v4-large`, trained with the same code as `distill-v4`, does not show the drop, so the stored statistics do not go wrong in every run.
+Training recomputes those statistics at its end since [#24](https://github.com/hskl18/cc-lite/pull/24), and every checkpoint here was trained before that; `distill-v4-large`, trained with the same code as `distill-v4`, does not show the drop.
 
 ## Use
 

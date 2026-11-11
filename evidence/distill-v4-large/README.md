@@ -1,7 +1,7 @@
 # distill-v4-large: `distill-v4`'s data in a larger network
 
 `train/checkpoint.pt` is trained as [`distill-v4`](../distill-v4) was, on the same 3,320,673 positions with the same MultiPV 4 soft targets for 6 epochs and 38,916 optimizer steps, but its network has 192 channels and 12 residual blocks instead of 128 and 8.
-Against Pikafish it scored 14 of 60 points, against 5.5 for `distill-v4`, and it agreed with the engine's best move on 36.7 percent of the held-out positions, against 33.6.
+Against Pikafish it scored 14 points in 60 games, against 5.5 for `distill-v4`, whose one game capped at 400 plies scores nothing, and it agreed with the engine's best move on 36.7 percent of the held-out positions, against 33.6.
 Its paired games against `distill-v4` did not separate the two.
 
 | | distill-v4 | distill-v4-large |
@@ -13,7 +13,7 @@ Its paired games against `distill-v4` did not separate the two.
 | Unmasked top move legal on those positions | 98.2 percent | 98.9 percent |
 | Value sign agreement on those positions | 90.9 percent | 96.5 percent |
 | Against Pikafish at depths 1, 2, and 4 | 1-2-16 with 1 capped, 3-1-16, 0-0-20 | 7-4-9, 3-3-14, 0-1-19 |
-| Points against Pikafish, of 60 | 5.5 | 14 |
+| Points against Pikafish in 60 games, a capped game scoring nothing | 5.5 | 14 |
 
 ## What the larger network changed
 
@@ -24,10 +24,10 @@ The paired report gives an Elo difference of 65 (-28 to 159) by `logistic-elo-wi
 
 Each Pikafish game has a counterpart in `distill-v4`'s bundles with the same seed, color, and depth.
 Over those 60 matched games, `distill-v4-large` scored more in 15, less in 4, and the same in 41, counting `distill-v4`'s one capped game as a draw.
-A two-sided sign test on the 19 that differ gives p = 0.019, and a bootstrap over the 60 games puts the mean gain at 0.04 to 0.23 points per game.
-That comparison is computed from the committed games; it is not one of the gates in [`docs/evaluation-protocol.md`](../../docs/evaluation-protocol.md), and the two networks' games diverge after their first different move, so the match is by seed and color only.
+A two-sided sign test on the 19 that differ gives p = 0.019, but it treats the games as independent, and each seed and color plays at all three depths; summing each seed and color's three games instead leaves 10 better, 3 worse, and 7 even, with p = 0.092.
+Both are exploratory checks computed from the committed games, not gates in [`docs/evaluation-protocol.md`](../../docs/evaluation-protocol.md), and the two networks' games diverge after their first different move, so the match is by seed and color only.
 
-On this evidence the network size was limiting at 3.3 million positions: the larger network did better on held-out agreement and against Pikafish, but has not yet beaten `distill-v4` in paired games, and it still lost 42 of its 60 games to Pikafish.
+The larger network did better on held-out agreement and scored more against Pikafish, which suggests that network size limits `distill-v4`, but neither its paired games against `distill-v4` nor the per-seed check above separates the two, and it still lost 42 of its 60 games to Pikafish.
 Its value sign agreement does not show `distill-v4`'s drop, although both were trained before [#24](https://github.com/hskl18/cc-lite/pull/24) added the BatchNorm recomputation that [#21](https://github.com/hskl18/cc-lite/issues/21) describes.
 
 ## How it was made

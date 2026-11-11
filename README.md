@@ -38,7 +38,7 @@ What the soft targets add on the larger data, and what the extra epochs add, was
 [`distill-v4`](evidence/distill-v4) doubled the positions again, to 3,320,673, and beat `distill-v3` 38-2-8, a score rate of 0.812 with an interval of 0.719 to 0.906, again inconclusive under the sequential rule.
 Its ablation at `distill-v3`'s number of training steps scored 0.594 against `distill-v3`, an interval of 0.469 to 0.719 that does not show a gain, so this time the new positions alone have not been shown to help at matched compute.
 [`distill-v4-large`](evidence/distill-v4-large) trained a 192-channel, 12-block network on `distill-v4`'s data for the same steps, with the network size as the one change.
-It scored 14 of 60 points against Pikafish where `distill-v4` scored 5.5, more in 15 of the 60 games with the same seed and color and less in 4, and agreed with the engine on 36.7 percent of held-out positions against 33.6.
+It scored 14 points in 60 games against Pikafish where `distill-v4` scored 5.5 with one game capped, and agreed with the engine on 36.7 percent of held-out positions against 33.6.
 Its paired games against `distill-v4` scored 0.594, an interval of 0.458 to 0.719 that does not show a gain.
 
 The validator rebuilds each count from the raw games, with the same command for every bundle in the `evidence/distill-*` directories; the generation-4 bundles are a release asset described in [`evidence/selfplay-v1`](evidence/selfplay-v1):
