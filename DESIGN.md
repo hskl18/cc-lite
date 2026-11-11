@@ -148,6 +148,11 @@ No run measured the soft targets on all the positions against best-move targets,
 Here held-out agreement moved with the paired results: 26.0 percent for the soft-target ablation, and 27.4 and 29.6 percent for the two checkpoints that beat it.
 Against Pikafish `distill-v3` scored 6.5 of 60 points, within noise of `distill-v2`'s 5.5.
 
+**And again, with more steps.** `distill-v4` doubled the positions again with `distill-v3`'s config files and beat `distill-v3` 38-2-8, a score rate of 0.812 with an interval of 0.719 to 0.906.
+This time its matched-step ablation scored 0.594 against `distill-v3`, an interval of 0.469 to 0.719, so the gain is shown only for twice the data with twice the steps.
+Held-out policy agreement kept moving with the games, to 31.7 and 33.6 percent, while value sign agreement fell to 91.1 and 90.9 percent; an exploratory check traced that to stale BatchNorm running statistics, whose re-estimation raised it above `distill-v3`'s without changing play ([#21](https://github.com/hskl18/cc-lite/issues/21)).
+Against Pikafish it scored 5.5 of 60 points.
+
 ## Search throughput for self-play
 
 Self-play is search-bound, and profiling one batched worker on the RTX 5070 Ti machine put 300 of 328 seconds inside `Board.is_in_check`.

@@ -1,0 +1,7 @@
+{
+  "legal_move_accuracy": 0.9648451282817269,
+  "policy_loss": 2.7207586494108433,
+  "samples": 3320673,
+  "target_accuracy": 0.32975459091174186,
+  "value_loss": 0.05532147006485434
+}

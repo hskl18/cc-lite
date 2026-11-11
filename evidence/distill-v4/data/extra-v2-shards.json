@@ -1,0 +1,55 @@
+{
+  "exclude_sha256": "4e5a50effdf56c69b4ef9c35996d543949c5b0e8c60eb3eabb75571b9dc83977",
+  "positions": 1647885,
+  "shards": [
+    {
+      "first_line": 0,
+      "path": "shards/shard-0.jsonl",
+      "records": 205986,
+      "sha256": "7f983a5f3dc9f09417fb693d18a8b552096a7843f874f947424532c4c94213c9"
+    },
+    {
+      "first_line": 205986,
+      "path": "shards/shard-1.jsonl",
+      "records": 205986,
+      "sha256": "b710b3449cdd47c395468e10c69c4c55f689e1c7943538051053f70972a34dc8"
+    },
+    {
+      "first_line": 411972,
+      "path": "shards/shard-2.jsonl",
+      "records": 205986,
+      "sha256": "5a99e16a68d4ee8bd80ffe13bbc6dfb112416ec765a7a6c941a0754bb6058793"
+    },
+    {
+      "first_line": 617958,
+      "path": "shards/shard-3.jsonl",
+      "records": 205986,
+      "sha256": "a9aa9c83ef13056406d6d66697b0e6fa5bb1bf14cac3bb8103b5057650bc1cf2"
+    },
+    {
+      "first_line": 823944,
+      "path": "shards/shard-4.jsonl",
+      "records": 205986,
+      "sha256": "379d230980c71718882f1dacdca8ee9b21b8e4f08bc3f2ade660a0273d18c639"
+    },
+    {
+      "first_line": 1029930,
+      "path": "shards/shard-5.jsonl",
+      "records": 205986,
+      "sha256": "b7b0526e5fd09d3fd3d976407a9087c3c071a162fbfce454b7d27fb6b40dd966"
+    },
+    {
+      "first_line": 1235916,
+      "path": "shards/shard-6.jsonl",
+      "records": 205986,
+      "sha256": "3718e9037cdc96124a24a5c89b240a5a96b4cb913a7092bc9d0a9acac9cb432c"
+    },
+    {
+      "first_line": 1441902,
+      "path": "shards/shard-7.jsonl",
+      "records": 205983,
+      "sha256": "213c88f366097f061a3e0abd5f6c96045534a64ea8b85c1a369cebb211aa0e7d"
+    }
+  ],
+  "total_seconds": 1555
+}
