@@ -41,7 +41,7 @@ The engine is the Fairy-Stockfish build described in [`evidence/distill-v1`](../
    `distill-v2`'s positions were not excluded, so the two sets may share positions.
 2. Labels: `distill-v1`'s positions and the new ones were each searched with `--multipv 4`.
    The policy target is `exp((score - best) / 100)` over the lines, normalized, and the value target is line 1's score divided by 1,000 and clipped, as for `distill-v1`.
-   1,636,042 of the 1,672,788 targets (97.8 percent) spread over two or more moves; the other 36,746 positions had one line or fell back to the best move, as the README's distillation section describes.
+   1,636,042 of the 1,672,788 targets (97.8 percent) spread over two or more moves; the other 36,746 positions had one line or fell back to the best move, as the distillation section of [docs/usage.md](../../docs/usage.md#optional-pikafish--engine-distillation) describes.
    Records: [`data/soft-v1-labels.manifest.json`](data/soft-v1-labels.manifest.json) for `distill-v1`'s positions and [`data/extra-v1-labels.manifest.json`](data/extra-v1-labels.manifest.json) for the new ones, both from a clean checkout of `073596b` on the RTX 5070 Ti machine described in `distill-v1`.
 3. Training: `train.experiment` on the two label files concatenated in that order, 6 epochs at batch 512, 4,045 s on an NVIDIA T4 on Kaggle, from a clean checkout of `073596b`.
    The T4 has no native bf16 and the Kaggle machine has 4 CPUs, so the config was `configs/distill_gpu.yaml` with `precision: fp16` and `num_workers: 4` (SHA-256 `464894e1…`), written outside the repository; its path and the data's are recorded as they were on that machine.
