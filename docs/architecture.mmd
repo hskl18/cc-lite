@@ -11,7 +11,7 @@ flowchart TB
     Records["Game records<br/>validated ICCS / UCCI"] --> Train
     SelfPlay["Self-play games"] --> Train
     Train --> Ckpt[("Checkpoint")]
-    Ckpt --> Eval["Evaluation<br/>scripted baselines, Pikafish,<br/>paired openings"]
+    Ckpt --> Eval["Evaluation<br/>scripted baselines, Pikafish,<br/>checkpoints on paired openings"]
     Eval --> Bundle[("Evidence bundle<br/>every move, seed, hash")]
     Bundle --> Validator["Validator<br/>replays every game"]
   end

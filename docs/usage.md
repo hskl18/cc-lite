@@ -193,6 +193,7 @@ python -m train.experiment validate \
 ## Optional Pikafish / Engine Distillation
 
 Pikafish's NNUE license forbids commercial use of its weights, and of weights derived from them, without permission, so the published checkpoints use Fairy-Stockfish labels; [DESIGN.md](../DESIGN.md#distillation-from-engine-labels) explains the choice.
+To reproduce those labels, pass `--engine-flavor fairy` as the commands in [`evidence/distill-v1`](../evidence/distill-v1/README.md) do; the example below uses the default Pikafish flavor.
 
 If you have a UCI/UCCI-compatible engine such as Pikafish, cache labels first:
 
