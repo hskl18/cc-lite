@@ -36,7 +36,7 @@ Against a real engine it does not.
 
 *Wins-draws-losses from the committed bundles. The scripted movers used 50 simulations on CPU and Pikafish games used 200 on the GPU; every score is over 20 games except `distill-v4`'s at Pikafish depth 1, over the 19 that ended before the 400-ply cap. `uv run scripts/plot_results.py` redraws it.*
 
-Later checkpoints beat the one before them twice, and self-play did not show a gain; [docs/results.md](docs/results.md) has every comparison, the evidence bundles, and how to validate them.
+Later checkpoints beat the one before them twice, and self-play did not show a gain; [docs/results.md](docs/results.md) has every later comparison, the evidence bundles, and how to validate them.
 
 ## Run it
 
@@ -51,12 +51,12 @@ The script replays all 40 baseline games on CPU and validates both bundles; it t
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.svg">
-  <img alt="Picking a move: the board under rules profile 1 is encoded as 16 planes of 10 by 9 for a residual policy-value network, whose 8100 move logits and value guide a PUCT search that masks illegal moves and plays the chosen move. Training and evaluation: engine labels from Fairy-Stockfish or Pikafish, validated ICCS or UCCI game records, and self-play games feed distillation or self-play training; the checkpoint goes to paired evaluation on seeded openings with colors swapped, which writes an evidence bundle of every move, seed, and hash that a validator replays game by game. The move-picking loop plays the self-play and evaluation games." src="docs/architecture-light.svg">
+  <img alt="Picking a move: the board under rules profile 1 is encoded as 16 planes of 10 by 9 for a residual policy-value network, whose 8100 move logits and value guide a PUCT search that masks illegal moves and plays the chosen move. Training and evaluation: engine labels from Fairy-Stockfish or Pikafish and validated ICCS or UCCI game records feed supervised training, and self-play games feed self-play training; the checkpoint is evaluated against the scripted baselines, Pikafish, and other checkpoints on paired openings, and every evaluation writes an evidence bundle of every move, seed, and hash that a validator replays game by game. The move-picking loop plays the self-play and evaluation games." src="docs/architecture-light.svg">
 </picture>
 
 The network always scores all 8100 from-to moves, and the search masks the illegal ones, so it never plays an illegal move even when the network prefers one.
 Every evaluation game lands in an evidence bundle that the validator replays before any score counts.
-[DESIGN.md](DESIGN.md) explains the decisions and the failures behind them, and [docs/usage.md](docs/usage.md) maps the source folders.
+[docs/usage.md](docs/usage.md) maps the source folders.
 
 ## Non-goals
 
@@ -70,11 +70,11 @@ The hard parts, the decisions behind them, and the failures that shaped them are
 
 ## Documentation
 
-- [Results in detail](docs/results.md): every checkpoint comparison, the evidence bundles, known limitations, and next steps.
+- [Results in detail](docs/results.md): every later checkpoint comparison, the evidence bundles, known limitations, and next steps.
 - [Usage](docs/usage.md): setup on each machine, the move encoding and model, training and distillation, evaluation, metrics, and tests.
 - [Design notes](DESIGN.md): the pipeline, the decisions, and the failures found and fixed.
 - [Evaluation protocol](docs/evaluation-protocol.md), [data ingestion](docs/data-ingestion.md), [rules profile](docs/rules-profile.md), and the [roadmap](docs/industry-roadmap.md).
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)
