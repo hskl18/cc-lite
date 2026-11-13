@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph play["Picking a move"]
+    direction LR
+    Board["Board<br/>rules profile 1"] -->|"16 x 10 x 9 planes"| Net["Policy-value network<br/>residual CNN"]
+    Net -->|"8100 move logits,<br/>value"| MCTS["PUCT MCTS<br/>illegal moves masked"]
+    MCTS -->|"chosen move"| Board
+  end
+  subgraph learn["Training and evaluation"]
+    direction LR
+    Engine["Engine labels<br/>Fairy-Stockfish or Pikafish"] --> Train["Training<br/>distillation or self-play"]
+    Records["Game records<br/>validated ICCS / UCCI"] --> Train
+    SelfPlay["Self-play games"] --> Train
+    Train --> Ckpt[("Checkpoint")]
+    Ckpt --> Eval["Paired evaluation<br/>seeded openings,<br/>colors swapped"]
+    Eval --> Bundle[("Evidence bundle<br/>every move, seed, hash")]
+    Bundle --> Validator["Validator<br/>replays every game"]
+  end
+  play -->|"plays the self-play<br/>and evaluation games"| learn
+%% Edit this file, then render architecture-light.svg and architecture-dark.svg from it again.

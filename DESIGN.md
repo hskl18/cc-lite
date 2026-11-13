@@ -1,7 +1,7 @@
 # Design notes
 
 This document explains the parts of cc-lite that are easy to get wrong, the decisions behind them, and the failures that shaped them.
-The README covers setup and commands; [`docs/evaluation-protocol.md`](docs/evaluation-protocol.md) and [`docs/rules-profile.md`](docs/rules-profile.md) hold the full specifications.
+The README covers the quick start and [`docs/usage.md`](docs/usage.md) setup and commands; [`docs/evaluation-protocol.md`](docs/evaluation-protocol.md) and [`docs/rules-profile.md`](docs/rules-profile.md) hold the full specifications.
 
 ## Pipeline
 
